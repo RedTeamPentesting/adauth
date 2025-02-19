@@ -1,0 +1,74 @@
+name: Check
+on:
+  # run tests on push to main, but not when other branches are pushed to
+  push:
+    branches:
+      - main
+
+  # run tests for all pull requests
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.24.x
+        id: go
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.64
+          args: --verbose --timeout 5m
+
+      - name: Check go.mod
+        run: |
+          echo "check if go.mod is up to date"
+          go mod tidy
+          git diff --exit-code go.mod
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.24.x
+        id: go
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run tests
+        run: |
+          go test ./...
+
+  build:
+    strategy:
+      matrix:
+        go-version:
+          - 1.24.x
+    runs-on: ubuntu-latest
+    name: Build with Go ${{ matrix.go-version }}
+    env:
+      GOPROXY: https://proxy.golang.org
+    steps:
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+        id: go
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build
+        run: go build ./...

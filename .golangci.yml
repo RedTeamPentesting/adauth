@@ -1,0 +1,102 @@
+linters:
+  disable-all: true
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - containedctx
+    - decorder
+    - dupl
+    - dupword
+    - durationcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - fatcontext
+    - forcetypeassert
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecksumtype
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - godox
+    - gofmt
+    - goheader
+    - goimports
+    - gosec
+    - gomodguard
+    - goprintffuncname
+    - gosimple
+    - gosmopolitan
+    - govet
+    - grouper
+    - importas
+    - inamedparam
+    - ineffassign
+    - interfacebloat
+    - lll
+    - loggercheck
+    - maintidx
+    - makezero
+    - mirror
+    - misspell
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn
+    - noctx
+    - nolintlint
+    - nosprintfhostport
+    - prealloc
+    - predeclared
+    - promlinter
+    - protogetter
+    - reassign
+    - sloglint
+    - spancheck
+    - sqlclosecheck
+    - staticcheck
+    - tagalign
+    - tagliatelle
+    - usetesting
+    - testableexamples
+    - testifylint
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - wastedassign
+    - whitespace
+    - wsl
+    - zerologlint
+linters-settings:
+  godox:
+    keywords:
+      - FIXME # FIXME generates a linter warning
+  goconst:
+    min-occurrences: 5
+  tagliatelle:
+    # check the struck tag name case
+    case:
+      rules:
+        json: snake
+        yaml: snake
+  gosec:
+    excludes:
+      - G304 # command execution
+      - G204 # file inclusion
+      - G115 # integer overflow
+      - G401 # weak cryptographic primitive (tell Microsoft, not me)
+      - G501 # weak cryptographic primitive (tell Microsoft, not me)
+      - G505 # weak cryptographic primitive (tell Microsoft, not me)
+      - G402 # InsecureSkipVerify may be true
+
+issues:
+  exclude-use-default: false
