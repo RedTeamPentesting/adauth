@@ -39,7 +39,7 @@ creds, target, err := authOpts.WithTarget(ctx, "smb", pflag.Arg(0))
 if err != nil { /* error handling */ }
 
 
-// Only credentials are need, no specific target:
+// Only credentials are needed, no specific target:
 creds, err := authOpts.NoTarget()
 if err != nil { /* error handling */ }
 
