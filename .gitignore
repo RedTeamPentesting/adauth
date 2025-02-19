@@ -1,2 +1,7 @@
-/adauth
+/dcerpc
+/examples/dcerpc/dcerpc
+/ldap
+/examples/ldap/ldap
+/pkinit
+/examples/pkinit/pkinit
 *.exe

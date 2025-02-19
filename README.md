@@ -24,16 +24,15 @@ var (
 
 authOpts.RegisterFlags(pflag.CommandLine)
 pflag.Parse()
-//     --aes-key string        Kerberos AES key
-//     --ccache string         Kerberos CCache file name (defaults to $KRB5CCNAME, currently unset)
+//     --aes-key hex key       Kerberos AES hex key
+//     --ccache file           Kerberos CCache file name (defaults to $KRB5CCNAME, currently unset)
 //     --dc string             Domain controller
-//     --debug                 Enable debug output
 // -k, --kerberos              Use Kerberos authentication
-// -H, --nt-hash string        NT hash
+// -H, --nt-hash hash          NT hash ('NT', ':NT' or 'LM:NT')
 // -p, --password string       Password
-//     --pfx string            Client certificate and private key in PFX format
+//     --pfx file              Client certificate and private key as PFX file
 //     --pfx-password string   Password for PFX file
-// -u, --user string           Username ('user@domain', 'domain\user', 'domain/user' or 'user')
+// -u, --user user@domain      Username ('user@domain', 'domain\user', 'domain/user' or 'user')
 
 // Credentials for an arbitrary target:
 creds, target, err := authOpts.WithTarget(ctx, "smb", pflag.Arg(0))
