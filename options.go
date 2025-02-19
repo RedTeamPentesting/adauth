@@ -38,15 +38,6 @@ type Options struct {
 	Resolver Resolver
 }
 
-// AuxiliaryInfo represents information that was obtained elsewhere that can be
-// used to supplement the parsed options. However, parsed options always take
-// precedent.
-type AuxiliaryInfo struct {
-	Domain string
-	User   string
-	DC     string
-}
-
 // RegisterFlags registers authentication flags to a pflag.FlagSet such as the
 // default flagset `pflag.CommandLine`.
 func (opts *Options) RegisterFlags(flagset *pflag.FlagSet) {
