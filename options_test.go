@@ -266,7 +266,7 @@ func TestKerberos(t *testing.T) {
 				User:        upn,
 				PFXFileName: "testdata/someuser@domain.tld.pfx",
 			},
-			ShouldUseKerberos: true,
+			ShouldUseKerberos: false,
 		},
 		{
 			Opts: adauth.Options{

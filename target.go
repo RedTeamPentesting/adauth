@@ -20,6 +20,14 @@ type Target struct {
 	ip       net.IP
 	// UseKerberos indicated that Kerberos authentication should be used to
 	// authenticate to this target.
+	//
+	// Warning: `UseKerberos` is false when the only credential available is a
+	// client certificate because in this case mTLS may also be used to
+	// authenticate depending on the protocol (e.g. LDAP/HTTPS). If the protocol
+	// that is used does not support using client certificates directly, you
+	// should decide for Kerberos authentication if `target.UserKerberos &&
+	// creds.ClientCert != nil` is `true`. In this case, Kerberos with PKINIT
+	// will be used.
 	UseKerberos bool
 	// Protocol is a string that represents the protocol that is used when
 	// communicating with this target. It is used to construct the SPN, however,

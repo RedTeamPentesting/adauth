@@ -13,6 +13,7 @@ import (
 	"encoding/binary"
 	"encoding/pem"
 	"fmt"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -97,6 +98,15 @@ func ConnectTo(
 	opts.TLSConfig, err = TLSConfig(ldapOpts, creds.ClientCert, creds.ClientCertKey, creds.CACerts)
 	if err != nil {
 		return nil, fmt.Errorf("configure TLS: %w", err)
+	}
+
+	if !ldapOpts.TLSConfig.InsecureSkipVerify && net.ParseIP(target.AddressWithoutPort()) != nil {
+		hostname, err := target.Hostname(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("determine target hostname for TLS verification: %w", err)
+		}
+
+		opts.TLSConfig.ServerName = hostname
 	}
 
 	conn, err = connect(target, opts)
@@ -213,18 +223,12 @@ func bind(
 	case creds.ClientCert != nil && strings.EqualFold(opts.Scheme, "ldap"):
 		opts.Debug("authenticating with client certificate via StartTLS")
 
-		if !opts.TLSConfig.InsecureSkipVerify {
-			hostname, err := target.Hostname(ctx)
+		_, ok := conn.TLSConnectionState()
+		if !ok {
+			err = conn.StartTLS(opts.TLSConfig)
 			if err != nil {
-				return fmt.Errorf("determine target hostname for TLS verification: %w", err)
+				return fmt.Errorf("StartTLS: %w", err)
 			}
-
-			opts.TLSConfig.ServerName = hostname
-		}
-
-		err = conn.StartTLS(opts.TLSConfig)
-		if err != nil {
-			return fmt.Errorf("StartTLS: %w", err)
 		}
 
 		err = conn.ExternalBind()

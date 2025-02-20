@@ -59,7 +59,7 @@ func AuthenticationOptions(
 	dcerpcOptions = append(dcerpcOptions, dcerpc.WithMechanism(ssp.SPNEGO))
 
 	switch {
-	case target.UseKerberos:
+	case target.UseKerberos || creds.ClientCert != nil:
 		spn, err := target.SPN(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("build SPN: %w", err)

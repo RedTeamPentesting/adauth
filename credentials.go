@@ -153,7 +153,7 @@ func (c *Credential) DC(ctx context.Context, protocol string) (*Target, error) {
 }
 
 func (c *Credential) mustUseKerberos() bool {
-	return c.Password == "" && c.NTHash == "" && (c.CCache != "" || c.AESKey != "" || c.ClientCert != nil)
+	return c.Password == "" && c.NTHash == "" && (c.CCache != "" || c.AESKey != "")
 }
 
 // Keytab returns the Kerberos keytab containing the AES key and/or NT hash if
