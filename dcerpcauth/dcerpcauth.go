@@ -170,7 +170,7 @@ type keytabCredentials struct {
 	domain   string
 }
 
-var _ credential.Keytab = &keytabCredentials{}
+var _ credential.KeytabV8 = &keytabCredentials{}
 
 func (ktc *keytabCredentials) DomainName() string {
 	return strings.ToUpper(ktc.domain)

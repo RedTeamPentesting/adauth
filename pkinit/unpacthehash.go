@@ -21,6 +21,7 @@ import (
 	"github.com/jcmturner/gokrb5/v8/types"
 	"github.com/oiweiwei/go-msrpc/msrpc/pac"
 	"github.com/oiweiwei/go-msrpc/ndr"
+	v9_types "github.com/oiweiwei/gokrb5.fork/v9/types"
 )
 
 // UnPACTheHash retrieves the user's NT hash via PKINIT using the provided PFX
@@ -204,7 +205,7 @@ func extractNTHash(
 		return nil, fmt.Errorf("unmarshal PAC_CREDENTIAL_INFO: %w", err)
 	}
 
-	credData, err := credInfo.DecryptCredentialData(pkinitKey)
+	credData, err := credInfo.DecryptCredentialData((v9_types.EncryptionKey)(pkinitKey))
 	if err != nil {
 		return nil, fmt.Errorf("decrypt PAC_CREDENTIAL_DATA: %w", err)
 	}
