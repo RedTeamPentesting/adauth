@@ -19,12 +19,13 @@ import (
 	"time"
 
 	"github.com/RedTeamPentesting/adauth"
+	"github.com/RedTeamPentesting/adauth/compat"
 	"github.com/RedTeamPentesting/adauth/othername"
 	"github.com/RedTeamPentesting/adauth/pkinit"
 	"software.sslmate.com/src/go-pkcs12"
 
 	"github.com/go-ldap/ldap/v3"
-	"github.com/jcmturner/gokrb5/v8/client"
+	"github.com/oiweiwei/gokrb5.fork/v9/client"
 	"github.com/spf13/pflag"
 )
 
@@ -57,11 +58,12 @@ type Options struct {
 	StartTLS bool
 	// DialOptions can be used to customize the connection. However
 	// ldap.DialWithTLSConfig will be ignored, because TLS setup is handled
-	// internally.
+	// internally. Note that setting a custom dialer with DialOptions only
+	// affects LDAP/LDAPS connections, not Kerberos connections. A custom dialer
+	// for Kerberos connections can be set with KerberosDialer.
 	DialOptions []ldap.DialOpt
-	// PKINITOptions can be used to modify the behavior of PKINIT when it is
-	// used.
-	PKINITOptions []pkinit.Option
+	// KerberosDialer is the dialer that is used to request Kerberos tickets.
+	KerberosDialer Dialer
 }
 
 // RegisterFlags registers LDAP specific flags to a pflag.FlagSet such as the
@@ -273,6 +275,10 @@ func kerberosClient(
 		return nil, fmt.Errorf("configure Kerberos: %w", err)
 	}
 
+	if opts.KerberosDialer == nil {
+		opts.KerberosDialer = &net.Dialer{Timeout: pkinit.DefaultKerberosRoundtripDeadline}
+	}
+
 	var (
 		authClient *gssapiClient
 		cert       *x509.Certificate
@@ -292,8 +298,9 @@ func kerberosClient(
 				creds.Username,
 				strings.ToUpper(creds.Domain),
 				creds.Password,
-				krbConf,
+				compat.Gokrb5ForkV9KerberosConfig(krbConf),
 				client.DisablePAFXFAST(true),
+				client.Dialer(opts.KerberosDialer),
 			),
 		}
 
@@ -310,9 +317,10 @@ func kerberosClient(
 			Client: client.NewWithKeytab(
 				creds.Username,
 				strings.ToUpper(creds.Domain),
-				keyTab,
-				krbConf,
+				compat.Gokrb5ForkV9Keytab(keyTab),
+				compat.Gokrb5ForkV9KerberosConfig(krbConf),
 				client.DisablePAFXFAST(true),
+				client.Dialer(opts.KerberosDialer),
 			),
 			BindCertificate: cert,
 		}
@@ -322,12 +330,12 @@ func kerberosClient(
 		opts.Debug("authenticating using GSSAPI bind (PKINIT)")
 
 		return newPKINITClient(ctx, creds.Username, strings.ToUpper(creds.Domain),
-			creds.ClientCert, creds.ClientCertKey, krbConf, opts.PKINITOptions...)
+			creds.ClientCert, creds.ClientCertKey, krbConf, opts.KerberosDialer)
 	case creds.CCache != "":
 		opts.Debug("authenticating using GSSAPI bind (ccache)")
 
 		authClient, err = newClientFromCCache(
-			creds.Username, strings.ToUpper(creds.Domain), creds.CCache, krbConf)
+			creds.Username, strings.ToUpper(creds.Domain), creds.CCache, krbConf, opts.KerberosDialer)
 		if err != nil {
 			return nil, fmt.Errorf("create GSSAPI client from CCACHE: %w", err)
 		}
@@ -488,4 +496,8 @@ func ChannelBindingHash(cert *x509.Certificate) []byte {
 	hash := channelBindingHasher.Sum(nil)
 
 	return hash
+}
+
+type Dialer interface {
+	Dial(net string, addr string) (net.Conn, error)
 }

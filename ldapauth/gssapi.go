@@ -9,26 +9,29 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 
+	"github.com/RedTeamPentesting/adauth/compat"
 	"github.com/RedTeamPentesting/adauth/pkinit"
-	"github.com/jcmturner/gokrb5/v8/client"
 	"github.com/jcmturner/gokrb5/v8/config"
-	"github.com/jcmturner/gokrb5/v8/iana/chksumtype"
-	"github.com/jcmturner/gokrb5/v8/iana/etypeID"
-	"github.com/jcmturner/gokrb5/v8/iana/flags"
-	"github.com/jcmturner/gokrb5/v8/iana/nametype"
-	"github.com/jcmturner/gokrb5/v8/krberror"
-	"github.com/jcmturner/gokrb5/v8/types"
 
-	krb5GSSAPI "github.com/jcmturner/gokrb5/v8/gssapi"
-	"github.com/jcmturner/gokrb5/v8/spnego"
+	"github.com/oiweiwei/gokrb5.fork/v9/client"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/chksumtype"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/etypeID"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/flags"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/nametype"
+	"github.com/oiweiwei/gokrb5.fork/v9/krberror"
+	"github.com/oiweiwei/gokrb5.fork/v9/types"
 
-	krb5Crypto "github.com/jcmturner/gokrb5/v8/crypto"
-	"github.com/jcmturner/gokrb5/v8/iana/keyusage"
-	"github.com/jcmturner/gokrb5/v8/messages"
+	krb5GSSAPI "github.com/oiweiwei/gokrb5.fork/v9/gssapi"
+	"github.com/oiweiwei/gokrb5.fork/v9/spnego"
 
-	"github.com/jcmturner/gokrb5/v8/credentials"
+	krb5Crypto "github.com/oiweiwei/gokrb5.fork/v9/crypto"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/keyusage"
+	"github.com/oiweiwei/gokrb5.fork/v9/messages"
+
+	"github.com/oiweiwei/gokrb5.fork/v9/credentials"
 )
 
 type gssapiClient struct {
@@ -42,21 +45,24 @@ type gssapiClient struct {
 }
 
 func newClientFromCCache(
-	username string, domain string, ccachePath string, krb5Conf *config.Config,
+	username string, domain string, ccachePath string, krb5Conf *config.Config, dialer Dialer,
 ) (*gssapiClient, error) {
 	ccache, err := credentials.LoadCCache(ccachePath)
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := client.NewFromCCache(ccache, krb5Conf, client.DisablePAFXFAST(true))
-	if err != nil && strings.Contains(strings.ToLower(err.Error()), "tgt not found") {
-		// client.NewFromCCache only accepts ccaches that contain at least one
-		// TGT, however, we want to support ccaches that only contain a service
+	c, err := client.NewFromCCache(
+		ccache, compat.Gokrb5ForkV9KerberosConfig(krb5Conf),
+		client.DisablePAFXFAST(true), client.Dialer(dialer))
+	if err != nil && strings.Contains(strings.ToLower(err.Error()), "tgt") {
+		// client.NewFromCCache only accepts CCaches that contain at least one
+		// TGT, however, we want to support CCaches that only contain a service
 		// ticket. Therefore, we use a dummy client, and pull the service ticket
 		// from the ccache ourselves instead of asking the client.
 		return &gssapiClient{
-			Client: client.NewWithPassword(username, domain, "", krb5Conf, client.DisablePAFXFAST(true)),
+			Client: client.NewWithPassword(
+				username, domain, "", compat.Gokrb5ForkV9KerberosConfig(krb5Conf), client.DisablePAFXFAST(true)),
 			ccache: ccache,
 		}, nil
 	}
@@ -70,14 +76,21 @@ func newClientFromCCache(
 
 func newPKINITClient(
 	ctx context.Context, username string, domain string, cert *x509.Certificate, key *rsa.PrivateKey,
-	krb5Conf *config.Config, opts ...pkinit.Option,
+	krb5Conf *config.Config, dialer Dialer,
 ) (*gssapiClient, error) {
-	ccache, err := pkinit.Authenticate(ctx, username, domain, cert, key, krb5Conf, opts...)
+	ctxDialer, ok := dialer.(pkinit.ContextDialer)
+	if !ok {
+		ctxDialer = nopContextDialer(dialer.Dial)
+	}
+
+	ccache, err := pkinit.Authenticate(ctx, username, domain, cert, key, krb5Conf, pkinit.WithDialer(ctxDialer))
 	if err != nil {
 		return nil, fmt.Errorf("pkinit: %w", err)
 	}
 
-	c, err := client.NewFromCCache(ccache, krb5Conf, client.DisablePAFXFAST(true))
+	c, err := client.NewFromCCache(
+		compat.Gokrb5ForkV9CCache(ccache), compat.Gokrb5ForkV9KerberosConfig(krb5Conf),
+		client.DisablePAFXFAST(true), client.Dialer(dialer))
 	if err != nil {
 		return nil, fmt.Errorf("initialize Kerberos client from PKINIT ccache: %w", err)
 	}
@@ -363,4 +376,10 @@ func krb5TokenAuthenticator(
 	}
 
 	return auth, nil
+}
+
+type nopContextDialer func(string, string) (net.Conn, error)
+
+func (f nopContextDialer) DialContext(ctx context.Context, net string, addr string) (net.Conn, error) {
+	return f(net, addr)
 }
