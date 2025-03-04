@@ -158,7 +158,8 @@ func (c *Credential) mustUseKerberos() bool {
 
 // Keytab returns the Kerberos keytab containing the AES key and/or NT hash if
 // they were supplied. If a password is supplied, the keys/hashes are not
-// derived and the keytab will be empty.
+// derived and the keytab will be empty. For compatibility with other Kerberos
+// libraries, see the `compat` package.
 func (c *Credential) Keytab() (*keytab.Keytab, error) {
 	kt := newKeytab()
 
@@ -179,7 +180,9 @@ func (c *Credential) Keytab() (*keytab.Keytab, error) {
 	return kt, nil
 }
 
-// KerberosConfig returns the Kerberos configuration for the credential's domain.
+// KerberosConfig returns the Kerberos configuration for the credential's
+// domain. For compatibility with other Kerberos libraries, see the `compat`
+// package.
 func (c *Credential) KerberosConfig(ctx context.Context) (*config.Config, error) {
 	dc, err := c.DC(ctx, "krbtgt")
 	if err != nil {
