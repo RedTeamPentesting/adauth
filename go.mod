@@ -6,7 +6,7 @@ require (
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
 	github.com/go-ldap/ldap/v3 v3.4.11-0.20250110131057-5d1b644709df
 	github.com/jcmturner/gokrb5/v8 v8.4.4
-	github.com/oiweiwei/go-msrpc v1.2.1
+	github.com/oiweiwei/go-msrpc v1.2.5
 	github.com/oiweiwei/gokrb5.fork/v9 v9.0.2
 	github.com/spf13/pflag v1.0.6
 	github.com/vadimi/go-ntlm v1.2.1
@@ -29,7 +29,7 @@ require (
 	github.com/oiweiwei/go-smb2.fork v1.0.0 // indirect
 	github.com/rs/zerolog v1.33.0 // indirect
 	golang.org/x/crypto v0.35.0 // indirect
-	golang.org/x/net v0.35.0 // indirect
+	golang.org/x/net v0.36.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 )
