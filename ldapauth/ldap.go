@@ -56,14 +56,15 @@ type Options struct {
 	// authentication on regular LDAP connections, StartTLS will be used even if
 	// this option is disabled.
 	StartTLS bool
-	// DialOptions can be used to customize the connection. However
-	// ldap.DialWithTLSConfig will be ignored, because TLS setup is handled
-	// internally. Note that setting a custom dialer with DialOptions only
-	// affects LDAP/LDAPS connections, not Kerberos connections. A custom dialer
-	// for Kerberos connections can be set with KerberosDialer.
+	// DialOptions can be used to customize the connection. DialOptions is
+	// ignored when a custom LDAPDialer is set.
 	DialOptions []ldap.DialOpt
-	// KerberosDialer is the dialer that is used to request Kerberos tickets.
+	// KerberosDialer is a custom dialer that is used to request Kerberos
+	// tickets. DialContext is used if implemented.
 	KerberosDialer Dialer
+	// LDAPDialer is a custom dialer that is used to establish LDAP connections.
+	// DialContext is used if implemented.
+	LDAPDialer Dialer
 }
 
 // RegisterFlags registers LDAP specific flags to a pflag.FlagSet such as the
@@ -111,7 +112,7 @@ func ConnectTo(
 		opts.TLSConfig.ServerName = hostname
 	}
 
-	conn, err = connect(target, opts)
+	conn, err = connect(ctx, target, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -130,22 +131,57 @@ func ConnectTo(
 	return conn, nil
 }
 
-func connect(target *adauth.Target, opts *Options) (*ldap.Conn, error) {
-	switch strings.ToLower(opts.Scheme) {
-	case "ldaps", "":
-		conn, err := ldap.DialURL("ldaps://"+target.Address(),
-			append(opts.DialOptions, ldap.DialWithTLSConfig(opts.TLSConfig))...)
-		if err != nil {
-			return nil, fmt.Errorf("LDAPS dial: %w", err)
+func connect(ctx context.Context, target *adauth.Target, opts *Options) (conn *ldap.Conn, err error) {
+	switch {
+	case strings.EqualFold(opts.Scheme, "ldaps"):
+		if target.Port == "" {
+			target.Port = ldap.DefaultLdapsPort
+		}
+
+		if opts.LDAPDialer == nil {
+			conn, err = ldap.DialURL("ldaps://"+target.Address(),
+				append(opts.DialOptions, ldap.DialWithTLSConfig(opts.TLSConfig))...)
+			if err != nil {
+				return nil, fmt.Errorf("LDAPS dial: %w", err)
+			}
+		} else {
+			tcpConn, err := ContextDialer(opts.LDAPDialer).DialContext(ctx, "tcp", target.Address())
+			if err != nil {
+				return nil, fmt.Errorf("dial with custom dialer: %w", err)
+			}
+
+			tlsConn := tls.Client(tcpConn, opts.TLSConfig)
+
+			err = tlsConn.Handshake()
+			if err != nil {
+				return nil, err
+			}
+
+			conn = ldap.NewConn(tlsConn, true)
+			conn.Start()
 		}
 
 		opts.Debug("connected to LDAPS server %s", target.Address())
 
 		return conn, nil
-	case "ldap":
-		conn, err := ldap.DialURL("ldap://"+target.Address(), opts.DialOptions...)
-		if err != nil {
-			return nil, fmt.Errorf("LDAP dial: %w", err)
+	case strings.EqualFold(opts.Scheme, "ldap"):
+		if target.Port == "" {
+			target.Port = ldap.DefaultLdapPort
+		}
+
+		if opts.LDAPDialer == nil {
+			conn, err = ldap.DialURL("ldap://"+target.Address(), opts.DialOptions...)
+			if err != nil {
+				return nil, fmt.Errorf("LDAP dial: %w", err)
+			}
+		} else {
+			tcpConn, err := ContextDialer(opts.LDAPDialer).DialContext(ctx, "tcp", target.Address())
+			if err != nil {
+				return nil, fmt.Errorf("dial with custom dialer: %w", err)
+			}
+
+			conn = ldap.NewConn(tcpConn, false)
+			conn.Start()
 		}
 
 		opts.Debug("connected to LDAP server %s", target.Address())

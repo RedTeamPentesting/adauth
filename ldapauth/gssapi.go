@@ -78,10 +78,7 @@ func newPKINITClient(
 	ctx context.Context, username string, domain string, cert *x509.Certificate, key *rsa.PrivateKey,
 	krb5Conf *config.Config, dialer Dialer,
 ) (*gssapiClient, error) {
-	ctxDialer, ok := dialer.(pkinit.ContextDialer)
-	if !ok {
-		ctxDialer = nopContextDialer(dialer.Dial)
-	}
+	ctxDialer := ContextDialer(dialer)
 
 	ccache, err := pkinit.Authenticate(ctx, username, domain, cert, key, krb5Conf, pkinit.WithDialer(ctxDialer))
 	if err != nil {
@@ -382,4 +379,13 @@ type nopContextDialer func(string, string) (net.Conn, error)
 
 func (f nopContextDialer) DialContext(ctx context.Context, net string, addr string) (net.Conn, error) {
 	return f(net, addr)
+}
+
+func ContextDialer(d Dialer) pkinit.ContextDialer {
+	ctxDialer, ok := d.(pkinit.ContextDialer)
+	if !ok {
+		ctxDialer = nopContextDialer(d.Dial)
+	}
+
+	return ctxDialer
 }
