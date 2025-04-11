@@ -59,18 +59,18 @@ PKINIT implementation as well as helpers for creating and writing CCache files
 
 ## Features
 
-* Kerberos
+* Kerberos:
   * PKINIT
   * UnPAC-the-Hash
   * Pass-the-Hash (RC4/NT or AES key)
   * CCache (containing TGT or ST)
-* NTLM
+* NTLM:
   * Pass-the-Hash
-* LDAP
+* LDAP:
   * Kerberos, NTLM, Simple Bind
   * mTLS Authentication / Pass-the-Certificate (LDAPS or LDAP+StartTLS)
   * Channel Binding (Kerberos and NTLM)
-* SMB
+* SMB:
   * Kerberos, NTLM
   * Signing and Sealing
 * DCERPC:
