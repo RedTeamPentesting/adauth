@@ -1,167 +1,103 @@
 package smbauth
 
 import (
-  "context"
-  "fmt"
-  "strings"
+	"context"
+	"fmt"
 
-  "github.com/RedTeamPentesting/adauth"
-  "github.com/RedTeamPentesting/adauth/pkinit"
+	"github.com/RedTeamPentesting/adauth"
+	"github.com/RedTeamPentesting/adauth/dcerpcauth"
+	"github.com/RedTeamPentesting/adauth/pkinit"
 
-  "github.com/jcmturner/gokrb5/v8/keytab"
-  "github.com/oiweiwei/go-msrpc/smb2"
-  "github.com/oiweiwei/go-msrpc/ssp"
-  "github.com/oiweiwei/go-msrpc/ssp/credential"
-  "github.com/oiweiwei/go-msrpc/ssp/gssapi"
-  "github.com/oiweiwei/go-msrpc/ssp/krb5"
+	"github.com/oiweiwei/go-smb2.fork"
+
+	msrpcSMB2 "github.com/oiweiwei/go-msrpc/smb2"
+	"github.com/oiweiwei/go-msrpc/ssp"
+	"github.com/oiweiwei/go-msrpc/ssp/gssapi"
+	"github.com/oiweiwei/go-msrpc/ssp/krb5"
 )
 
-// Options holds options that modify the behavior of the AuthenticationOptions
-// function.
+// Options holds options that modify the behavior of the Dialer function.
 type Options struct {
-  // SMBOptions holds options for the SMB dialer. If SMBOptions is nil,
-  // sealing will be enabled for the smb dialer, specify an empty slice
-  // to disable this default.
-  SMBOptions []smb2.DialerOption
+	// SMBOptions holds options for the SMB dialer. If SMBOptions is nil,
+	// encryption/sealing will be enabled. Specify an empty slice to disable
+	// this default.
+	SMBOptions []msrpcSMB2.DialerOption
 
-  // PKINITOptions can be used to modify the Kerberos PKINIT behavior.
-  PKINITOptions []pkinit.Option
+	// PKINITOptions can be used to modify the Kerberos PKINIT behavior.
+	PKINITOptions []pkinit.Option
 
-  // Debug can be set to enable debug output, for example with
-  // adauth.NewDebugFunc(...).
-  Debug func(string, ...any)
+	// Debug can be set to enable debug output, for example with
+	// adauth.NewDebugFunc(...).
+	Debug func(string, ...any)
 }
 
 func (opts *Options) debug(format string, a ...any) {
-  if opts == nil || opts.Debug == nil {
-    return
-  }
+	if opts == nil || opts.Debug == nil {
+		return
+	}
 
-  opts.Debug(format, a...)
+	opts.Debug(format, a...)
 }
 
-// AuthenticationOptions returns the security context options for
-// smb2.WithSecurity. It is possible to configure the SMB, PKINIT
-// and debug behavior using the optional upstreamOptions argument.
-func AuthenticationOptions(
-  ctx context.Context, creds *adauth.Credential, target *adauth.Target,
-  upstreamOptions *Options,
-) (dialOptions []smb2.DialerOption, secOptions []gssapi.ContextOption, err error) {
+// Dialer returns an SMB dialer which is prepared for authentication with the
+// given credentials. The dialer can be further customized with
+// options.SMBDialerOptions.
+func Dialer(
+	ctx context.Context, creds *adauth.Credential, target *adauth.Target, options *Options,
+) (*smb2.Dialer, error) {
+	smbCreds, err := dcerpcauth.DCERPCCredentials(ctx, creds, &dcerpcauth.Options{
+		PKINITOptions: options.PKINITOptions,
+		Debug:         options.debug,
+	})
+	if err != nil {
+		return nil, err
+	}
 
-  if dialOptions = upstreamOptions.SMBOptions; dialOptions == nil {
-    dialOptions = []smb2.DialerOption{smb2.WithSeal()}
-  }
+	dialerOptions := options.SMBOptions
+	if dialerOptions == nil {
+		dialerOptions = append(dialerOptions, msrpcSMB2.WithSeal())
+	}
 
-  smbCredentials, err := SMBCredentials(ctx, creds, upstreamOptions)
-  if err != nil {
-    return nil, nil, err
-  }
+	switch {
+	case target.UseKerberos || creds.ClientCert != nil:
+		spn, err := target.SPN(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("build SPN: %w", err)
+		}
 
-  switch {
-  case target.UseKerberos || creds.ClientCert != nil:
-    spn, err := target.SPN(ctx)
-    if err != nil {
-      return nil, nil, fmt.Errorf("build SPN: %w", err)
-    }
-    upstreamOptions.debug("Using Kerberos with SPN %q", spn)
+		options.debug("Using Kerberos with SPN %q", spn)
 
-    krbConf, err := creds.KerberosConfig(ctx)
-    if err != nil {
-      return nil, nil, fmt.Errorf("generate Kerberos config: %w", err)
-    }
+		krbConf, err := creds.KerberosConfig(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("generate Kerberos config: %w", err)
+		}
 
-    secOptions = append(secOptions,
-      gssapi.WithTargetName(spn),
-      gssapi.WithCredential(smbCredentials),
-      gssapi.WithMechanismFactory(ssp.KRB5, &krb5.Config{
-        KRB5Config:      krbConf,
-        CCachePath:      creds.CCache,
-        DisablePAFXFAST: true,
-        DCEStyle:        true,
-      }),
-    )
-  default:
-    upstreamOptions.debug("Using NTLM")
+		dialerOptions = append(dialerOptions, msrpcSMB2.WithSecurity(
+			gssapi.WithTargetName(spn),
+			gssapi.WithCredential(smbCreds),
+			gssapi.WithMechanismFactory(ssp.KRB5, &krb5.Config{
+				KRB5Config:      krbConf,
+				CCachePath:      creds.CCache,
+				DisablePAFXFAST: true,
+			}),
+		))
 
-    secOptions = append(secOptions,
-      gssapi.WithCredential(smbCredentials),
-      gssapi.WithMechanismFactory(ssp.NTLM),
-    )
-    // Try fetching SPN
-    if spn, err := target.SPN(ctx); err == nil {
-      secOptions = append(secOptions, gssapi.WithTargetName(spn))
-    }
-  }
-  return
-}
+		return msrpcSMB2.NewDialer(dialerOptions...), nil
+	default:
+		options.debug("Using NTLM")
 
-func SMBCredentials(ctx context.Context, creds *adauth.Credential, options *Options) (credential.Credential, error) {
-  switch {
-  case creds.Password != "":
-    options.debug("Authenticating with password")
+		secOptions := []gssapi.ContextOption{
+			gssapi.WithCredential(smbCreds),
+			gssapi.WithMechanismFactory(ssp.NTLM),
+		}
 
-    return credential.NewFromPassword(creds.LogonNameWithUpperCaseDomain(), creds.Password), nil
-  case creds.AESKey != "":
-    options.debug("Authenticating with AES key")
+		spn, err := target.SPN(ctx)
+		if err == nil {
+			secOptions = append(secOptions, gssapi.WithTargetName(spn))
+		}
 
-    keyTab, err := creds.Keytab()
-    if err != nil {
-      return nil, fmt.Errorf("create keytab: %w", err)
-    }
+		dialerOptions = append(dialerOptions, msrpcSMB2.WithSecurity(secOptions...))
 
-    return &keytabCredentials{username: creds.Username, domain: creds.Domain, keytab: keyTab}, nil
-  case creds.NTHash != "":
-    options.debug("Authenticating with NT hash")
-
-    return credential.NewFromNTHash(creds.LogonNameWithUpperCaseDomain(), creds.NTHash), nil
-  case creds.PasswordIsEmtpyString:
-    options.debug("Authenticating with empty password")
-
-    return credential.NewFromPassword(strings.ToUpper(creds.Domain)+`\`+creds.Username, ""), nil
-  case creds.ClientCert != nil:
-    options.debug("Authenticating with client certificate (PKINIT)")
-
-    krbConf, err := creds.KerberosConfig(ctx)
-    if err != nil {
-      return nil, fmt.Errorf("generate kerberos config: %w", err)
-    }
-
-    ccache, err := pkinit.Authenticate(ctx, creds.Username, strings.ToUpper(creds.Domain),
-      creds.ClientCert, creds.ClientCertKey, krbConf, options.PKINITOptions...)
-    if err != nil {
-      return nil, fmt.Errorf("PKINIT: %w", err)
-    }
-
-    return credential.NewFromCCache(creds.LogonNameWithUpperCaseDomain(), ccache), nil
-  case creds.CCache != "":
-    options.debug("Authenticating with ccache")
-
-    return credential.NewFromPassword(creds.LogonNameWithUpperCaseDomain(), ""), nil
-  default:
-    return nil, fmt.Errorf("no credentials available")
-  }
-}
-
-type keytabCredentials struct {
-  keytab   *keytab.Keytab
-  username string
-  domain   string
-}
-
-var _ credential.KeytabV8 = &keytabCredentials{}
-
-func (ktc *keytabCredentials) DomainName() string {
-  return strings.ToUpper(ktc.domain)
-}
-
-func (ktc *keytabCredentials) Workstation() string {
-  return ""
-}
-
-func (ktc *keytabCredentials) UserName() string {
-  return ktc.username
-}
-
-func (ktc *keytabCredentials) Keytab() *keytab.Keytab {
-  return ktc.keytab
+		return msrpcSMB2.NewDialer(dialerOptions...), nil
+	}
 }

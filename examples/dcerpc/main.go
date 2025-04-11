@@ -13,7 +13,6 @@ import (
 	"github.com/oiweiwei/go-msrpc/msrpc/dtyp"
 	"github.com/oiweiwei/go-msrpc/msrpc/epm/epm/v3"
 	"github.com/oiweiwei/go-msrpc/msrpc/samr/samr/v1"
-	"github.com/oiweiwei/go-msrpc/ssp/gssapi"
 	"github.com/spf13/pflag"
 )
 
@@ -43,7 +42,7 @@ func run() error {
 		return err
 	}
 
-	ctx := gssapi.NewSecurityContext(context.Background())
+	ctx := context.Background()
 
 	dcerpcOpts, err := dcerpcauth.AuthenticationOptions(ctx, creds, target, dcerpcauthOpts)
 	if err != nil {

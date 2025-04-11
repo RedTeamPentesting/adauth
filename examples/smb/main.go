@@ -1,97 +1,105 @@
 package main
 
 import (
-  "context"
-  "fmt"
-  "github.com/RedTeamPentesting/adauth/smbauth"
-  "github.com/oiweiwei/go-msrpc/smb2"
-  "github.com/oiweiwei/go-msrpc/ssp"
-  "net"
-  "os"
-  "path/filepath"
+	"context"
+	"fmt"
+	"net"
+	"os"
+	"path/filepath"
 
-  "github.com/RedTeamPentesting/adauth"
-  "github.com/oiweiwei/go-msrpc/ssp/gssapi"
-  "github.com/spf13/pflag"
+	"github.com/RedTeamPentesting/adauth/smbauth"
+
+	"github.com/RedTeamPentesting/adauth"
+	"github.com/spf13/pflag"
 )
-
-var (
-  debug    bool
-  authOpts = &adauth.Options{
-    Debug: adauth.NewDebugFunc(&debug, os.Stderr, true),
-  }
-)
-
-func init() {
-  pflag.CommandLine.BoolVar(&debug, "debug", false, "Enable debug output")
-  authOpts.RegisterFlags(pflag.CommandLine)
-  gssapi.AddMechanism(ssp.SPNEGO)
-  gssapi.AddMechanism(ssp.NTLM)
-}
 
 func run() error {
-  pflag.Parse()
+	var (
+		debug    bool
+		authOpts = &adauth.Options{
+			Debug: adauth.NewDebugFunc(&debug, os.Stderr, true),
+		}
+		smbauthOpts = &smbauth.Options{
+			Debug: authOpts.Debug,
+		}
+	)
 
-  if len(pflag.Args()) != 1 {
-    return fmt.Errorf("usage: %s <target> [--debug]", binaryName())
-  }
+	pflag.CommandLine.BoolVar(&debug, "debug", false, "Enable debug output")
+	authOpts.RegisterFlags(pflag.CommandLine)
+	pflag.Parse()
 
-  creds, target, err := authOpts.WithTarget(context.Background(), "host", pflag.Arg(0))
-  if err != nil {
-    return err
-  }
+	if len(pflag.Args()) != 1 {
+		return fmt.Errorf("usage: %s [options] <target>", binaryName())
+	}
 
-  ctx := gssapi.NewSecurityContext(context.Background())
+	creds, target, err := authOpts.WithTarget(context.Background(), "host", pflag.Arg(0))
+	if err != nil {
+		return err
+	}
 
-  smbOpts, secOpts, err := smbauth.AuthenticationOptions(ctx, creds, target, &smbauth.Options{})
-  if err != nil {
-    return err
-  }
+	if target.Port == "" {
+		target.Port = "445"
+	}
 
-  // Create go-smb2 Dialer
-  dialer := smb2.NewDialer(append(smbOpts, smb2.WithSecurity(secOpts...))...)
+	ctx := context.Background()
 
-  conn, err := net.Dial("tcp", net.JoinHostPort(target.AddressWithoutPort(), "445"))
-  if err != nil {
-    return err
-  }
-  defer conn.Close()
+	smbDialer, err := smbauth.Dialer(ctx, creds, target, smbauthOpts)
+	if err != nil {
+		return fmt.Errorf("setup SMB authentication: %w", err)
+	}
 
-  sess, err := dialer.Dial(conn)
-  if err != nil {
-    return err
-  }
-  defer sess.Logoff()
+	conn, err := net.Dial("tcp", target.Address())
+	if err != nil {
+		return fmt.Errorf("dial: %w", err)
+	}
 
-  names, err := sess.ListSharenames()
-  if err != nil {
-    return err
-  }
+	defer conn.Close()
 
-  for _, name := range names {
-    fmt.Println(name)
-  }
-  return nil
+	sess, err := smbDialer.DialContext(ctx, conn)
+	if err != nil {
+		return fmt.Errorf("create session: %w", err)
+	}
+
+	defer sess.Logoff()
+
+	shares, err := sess.ListSharenames()
+	if err != nil {
+		return fmt.Errorf("list share names: %w", err)
+	}
+
+	if len(shares) == 0 {
+		fmt.Println("No shares available")
+
+		return nil
+	}
+
+	fmt.Println("Shares:")
+
+	for _, share := range shares {
+		fmt.Printf(" - %s\n", share)
+	}
+
+	return nil
 }
 
 func binaryName() string {
-  executable, err := os.Executable()
-  if err == nil {
-    return filepath.Base(executable)
-  }
+	executable, err := os.Executable()
+	if err == nil {
+		return filepath.Base(executable)
+	}
 
-  if len(os.Args) > 0 {
-    return filepath.Base(os.Args[0])
-  }
+	if len(os.Args) > 0 {
+		return filepath.Base(os.Args[0])
+	}
 
-  return "list-shares"
+	return "smb"
 }
 
 func main() {
-  err := run()
-  if err != nil {
-    fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+	err := run()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 
-    os.Exit(1)
-  }
+		os.Exit(1)
+	}
 }

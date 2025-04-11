@@ -21,9 +21,9 @@ import (
 // function.
 type Options struct {
 	// SMBOptions holds options for the SMB dialer. This dialer is only used
-	// with the named pipe transport. If SMBOptions is nil, sealing will be
-	// enabled for the smb dialer, specify an empty slice to disable this
-	// default.
+	// with the named pipe transport. If SMBOptions is nil, encryption/sealing
+	// will be enabled for the SMB dialer, specify an empty slice to disable
+	// this default.
 	SMBOptions []smb2.DialerOption
 	// PKINITOptions can be used to modify the Kerberos PKINIT behavior.
 	PKINITOptions []pkinit.Option

@@ -53,9 +53,9 @@ Kerberos authentication is possible even when specifying the target via IP
 address if reverse lookups are possible. Similarly, the domain can be omitted
 when the target hostname contains the domain.
 
-The library also contains helper packages for LDAP and DCERPC, a Kerebros PKINIT
-implementation as well as helpers for creating and writing CCache files (see
-examples).
+The library also contains helper packages for LDAP, SMB and DCERPC, a Kerebros
+PKINIT implementation as well as helpers for creating and writing CCache files
+(see examples).
 
 ## Features
 
@@ -70,12 +70,14 @@ examples).
   * Kerberos, NTLM, Simple Bind
   * mTLS Authentication / Pass-the-Certificate (LDAPS or LDAP+StartTLS)
   * Channel Binding (Kerberos and NTLM)
+* SMB
+  * Kerberos, NTLM
+  * Signing and Sealing
 * DCERPC:
   * Kerberos, NTLM
   * Raw endpoits (with port mapping)
   * Named pipes (SMB)
-  * Signing
-  * Sealing
+  * Signing and Sealing
 
 ## Caveats
 
