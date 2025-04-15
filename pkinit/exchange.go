@@ -10,6 +10,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/RedTeamPentesting/adauth"
 	"github.com/RedTeamPentesting/adauth/ccachetools"
 	"github.com/jcmturner/gokrb5/v8/config"
 	"github.com/jcmturner/gokrb5/v8/credentials"
@@ -62,7 +63,7 @@ func Authenticate(
 // ASRep.
 func ASExchange(
 	ctx context.Context, asReq messages.ASReq, domain string, config *config.Config,
-	dialer ContextDialer, roundtripDeadline time.Duration,
+	dialer adauth.ContextDialer, roundtripDeadline time.Duration,
 ) (asRep messages.ASRep, err error) {
 	asReqBytes, err := asReq.Marshal()
 	if err != nil {
@@ -86,7 +87,7 @@ func ASExchange(
 // TGSRep.
 func TGSExchange(
 	ctx context.Context, tgsReq messages.TGSReq, config *config.Config, domain string,
-	dialer ContextDialer, roundtripDeadline time.Duration,
+	dialer adauth.ContextDialer, roundtripDeadline time.Duration,
 ) (tgsRep messages.TGSRep, err error) {
 	asReqBytes, err := tgsReq.Marshal()
 	if err != nil {
@@ -108,7 +109,7 @@ func TGSExchange(
 
 func roundtrip(
 	ctx context.Context, request []byte, config *config.Config, domain string,
-	dialer ContextDialer, roundtripDeadline time.Duration,
+	dialer adauth.ContextDialer, roundtripDeadline time.Duration,
 ) (response []byte, err error) {
 	_, kdcs, err := config.GetKDCs(domain, true)
 	if err != nil {
@@ -138,15 +139,9 @@ func roundtrip(
 	}
 }
 
-// ContextDialer is a context aware dialer such as net.Dialer or the SOCKS5
-// dialer returned by proxy.SOCKS5.
-type ContextDialer interface {
-	DialContext(ctx context.Context, net string, addr string) (net.Conn, error)
-}
-
 func roundtripForSingleKDC(
 	ctx context.Context, request []byte, address string,
-	dialer ContextDialer, roundtripDeadline time.Duration,
+	dialer adauth.ContextDialer, roundtripDeadline time.Duration,
 ) ([]byte, error) {
 	if dialer == nil {
 		dialer = &net.Dialer{Timeout: roundtripDeadline}
@@ -237,11 +232,11 @@ func (option) isPKINITOption() {}
 
 type dialerOption struct {
 	option
-	ContextDialer ContextDialer
+	ContextDialer adauth.ContextDialer
 }
 
 // WithDialer can be used to set a custom dialer for communication with a DC.
-func WithDialer(dialer ContextDialer) Option {
+func WithDialer(dialer adauth.ContextDialer) Option {
 	return dialerOption{ContextDialer: dialer}
 }
 
@@ -256,7 +251,7 @@ func WithRoundtripDeadline(deadline time.Duration) Option {
 	return deadlineOption{Deadline: deadline}
 }
 
-func processOptions(opts []Option) (dialer ContextDialer, roundtripDeadline time.Duration, err error) {
+func processOptions(opts []Option) (dialer adauth.ContextDialer, roundtripDeadline time.Duration, err error) {
 	roundtripDeadline = DefaultKerberosRoundtripDeadline
 
 	for _, opt := range opts {

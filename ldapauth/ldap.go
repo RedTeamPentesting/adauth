@@ -61,10 +61,10 @@ type Options struct {
 	DialOptions []ldap.DialOpt
 	// KerberosDialer is a custom dialer that is used to request Kerberos
 	// tickets. DialContext is used if implemented.
-	KerberosDialer Dialer
+	KerberosDialer adauth.Dialer
 	// LDAPDialer is a custom dialer that is used to establish LDAP connections.
 	// DialContext is used if implemented.
-	LDAPDialer Dialer
+	LDAPDialer adauth.Dialer
 }
 
 // RegisterFlags registers LDAP specific flags to a pflag.FlagSet such as the
@@ -76,6 +76,12 @@ func (opts *Options) RegisterFlags(flagset *pflag.FlagSet) {
 	flagset.BoolVar(&opts.Verify, "verify", false, "Verify LDAP TLS certificate")
 	flagset.BoolVar(&opts.StartTLS, "start-tls", false,
 		"Negotiate StartTLS before authenticating on regular LDAP connection")
+}
+
+// SetDialer configures a dialer for LDAP and Kerberos.
+func (opts *Options) SetDialer(dialer adauth.Dialer) {
+	opts.KerberosDialer = dialer
+	opts.LDAPDialer = dialer
 }
 
 // Connect returns an authenticated LDAP connection to the domain controller's
@@ -145,7 +151,7 @@ func connect(ctx context.Context, target *adauth.Target, opts *Options) (conn *l
 				return nil, fmt.Errorf("LDAPS dial: %w", err)
 			}
 		} else {
-			tcpConn, err := ContextDialer(opts.LDAPDialer).DialContext(ctx, "tcp", target.Address())
+			tcpConn, err := adauth.AsContextDialer(opts.LDAPDialer).DialContext(ctx, "tcp", target.Address())
 			if err != nil {
 				return nil, fmt.Errorf("dial with custom dialer: %w", err)
 			}
@@ -175,7 +181,7 @@ func connect(ctx context.Context, target *adauth.Target, opts *Options) (conn *l
 				return nil, fmt.Errorf("LDAP dial: %w", err)
 			}
 		} else {
-			tcpConn, err := ContextDialer(opts.LDAPDialer).DialContext(ctx, "tcp", target.Address())
+			tcpConn, err := adauth.AsContextDialer(opts.LDAPDialer).DialContext(ctx, "tcp", target.Address())
 			if err != nil {
 				return nil, fmt.Errorf("dial with custom dialer: %w", err)
 			}
@@ -532,8 +538,4 @@ func ChannelBindingHash(cert *x509.Certificate) []byte {
 	hash := channelBindingHasher.Sum(nil)
 
 	return hash
-}
-
-type Dialer interface {
-	Dial(net string, addr string) (net.Conn, error)
 }

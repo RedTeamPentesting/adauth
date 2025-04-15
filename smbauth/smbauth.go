@@ -6,7 +6,6 @@ import (
 
 	"github.com/RedTeamPentesting/adauth"
 	"github.com/RedTeamPentesting/adauth/dcerpcauth"
-	"github.com/RedTeamPentesting/adauth/pkinit"
 
 	"github.com/oiweiwei/go-smb2.fork"
 
@@ -23,8 +22,9 @@ type Options struct {
 	// this default.
 	SMBOptions []msrpcSMB2.DialerOption
 
-	// PKINITOptions can be used to modify the Kerberos PKINIT behavior.
-	PKINITOptions []pkinit.Option
+	// KerberosDialer is a custom dialer that is used to request Kerberos
+	// tickets.
+	KerberosDialer adauth.Dialer
 
 	// Debug can be set to enable debug output, for example with
 	// adauth.NewDebugFunc(...).
@@ -46,8 +46,7 @@ func Dialer(
 	ctx context.Context, creds *adauth.Credential, target *adauth.Target, options *Options,
 ) (*smb2.Dialer, error) {
 	smbCreds, err := dcerpcauth.DCERPCCredentials(ctx, creds, &dcerpcauth.Options{
-		PKINITOptions: options.PKINITOptions,
-		Debug:         options.debug,
+		Debug: options.debug,
 	})
 	if err != nil {
 		return nil, err

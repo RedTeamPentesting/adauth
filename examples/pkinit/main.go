@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/RedTeamPentesting/adauth"
 	"github.com/RedTeamPentesting/adauth/ccachetools"
 	"github.com/RedTeamPentesting/adauth/pkinit"
 	"github.com/spf13/pflag"
@@ -18,6 +19,7 @@ func run() error {
 		pfxPassword string
 		ccacheName  string
 		dc          string
+		socksServer = os.Getenv("SOCKS5_SERVER")
 	)
 
 	pflag.StringVarP(&username, "username", "u", "", "Username (overrides UPN in PFX)")
@@ -26,9 +28,12 @@ func run() error {
 	pflag.StringVarP(&pfxPassword, "pfx-password", "p", "", "PFX file password")
 	pflag.StringVar(&ccacheName, "cache", "", "CCache output file name")
 	pflag.StringVar(&dc, "dc", "", "Domain controller (optional)")
+	pflag.StringVar(&socksServer, "socks", socksServer, "SOCKS5 server")
+
 	pflag.Parse()
 
-	ccache, hash, err := pkinit.UnPACTheHashFromPFX(context.Background(), username, domain, pfxFile, pfxPassword, dc)
+	ccache, hash, err := pkinit.UnPACTheHashFromPFX(context.Background(), username, domain, pfxFile, pfxPassword, dc,
+		pkinit.WithDialer(adauth.DialerWithSOCKS5ProxyIfSet(socksServer, nil)))
 	if err != nil {
 		return fmt.Errorf("UnPAC-the-Hash: %w", err)
 	}

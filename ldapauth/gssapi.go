@@ -9,9 +9,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"net"
 	"strings"
 
+	"github.com/RedTeamPentesting/adauth"
 	"github.com/RedTeamPentesting/adauth/compat"
 	"github.com/RedTeamPentesting/adauth/pkinit"
 	"github.com/jcmturner/gokrb5/v8/config"
@@ -45,7 +45,7 @@ type gssapiClient struct {
 }
 
 func newClientFromCCache(
-	username string, domain string, ccachePath string, krb5Conf *config.Config, dialer Dialer,
+	username string, domain string, ccachePath string, krb5Conf *config.Config, dialer adauth.Dialer,
 ) (*gssapiClient, error) {
 	ccache, err := credentials.LoadCCache(ccachePath)
 	if err != nil {
@@ -76,9 +76,9 @@ func newClientFromCCache(
 
 func newPKINITClient(
 	ctx context.Context, username string, domain string, cert *x509.Certificate, key *rsa.PrivateKey,
-	krb5Conf *config.Config, dialer Dialer,
+	krb5Conf *config.Config, dialer adauth.Dialer,
 ) (*gssapiClient, error) {
-	ctxDialer := ContextDialer(dialer)
+	ctxDialer := adauth.AsContextDialer(dialer)
 
 	ccache, err := pkinit.Authenticate(ctx, username, domain, cert, key, krb5Conf, pkinit.WithDialer(ctxDialer))
 	if err != nil {
@@ -373,19 +373,4 @@ func krb5TokenAuthenticator(
 	}
 
 	return auth, nil
-}
-
-type nopContextDialer func(string, string) (net.Conn, error)
-
-func (f nopContextDialer) DialContext(ctx context.Context, net string, addr string) (net.Conn, error) {
-	return f(net, addr)
-}
-
-func ContextDialer(d Dialer) pkinit.ContextDialer {
-	ctxDialer, ok := d.(pkinit.ContextDialer)
-	if !ok {
-		ctxDialer = nopContextDialer(d.Dial)
-	}
-
-	return ctxDialer
 }

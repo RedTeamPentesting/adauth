@@ -2,6 +2,7 @@
 /examples/dcerpc/dcerpc
 /ldap
 /examples/ldap/ldap
-/pkinit
 /examples/pkinit/pkinit
+/smb
+/examples/smb/smb
 *.exe

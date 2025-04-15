@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
 
@@ -15,8 +14,9 @@ import (
 
 func run() error {
 	var (
-		debug    bool
-		authOpts = &adauth.Options{
+		debug       bool
+		socksServer = os.Getenv("SOCKS5_SERVER")
+		authOpts    = &adauth.Options{
 			Debug: adauth.NewDebugFunc(&debug, os.Stderr, true),
 		}
 		smbauthOpts = &smbauth.Options{
@@ -25,6 +25,7 @@ func run() error {
 	)
 
 	pflag.CommandLine.BoolVar(&debug, "debug", false, "Enable debug output")
+	pflag.CommandLine.StringVar(&socksServer, "socks", socksServer, "SOCKS5 proxy server")
 	authOpts.RegisterFlags(pflag.CommandLine)
 	pflag.Parse()
 
@@ -43,12 +44,14 @@ func run() error {
 
 	ctx := context.Background()
 
+	smbauthOpts.KerberosDialer = adauth.DialerWithSOCKS5ProxyIfSet(socksServer, nil)
+
 	smbDialer, err := smbauth.Dialer(ctx, creds, target, smbauthOpts)
 	if err != nil {
 		return fmt.Errorf("setup SMB authentication: %w", err)
 	}
 
-	conn, err := net.Dial("tcp", target.Address())
+	conn, err := adauth.DialerWithSOCKS5ProxyIfSet(socksServer, nil).DialContext(ctx, "tcp", target.Address())
 	if err != nil {
 		return fmt.Errorf("dial: %w", err)
 	}

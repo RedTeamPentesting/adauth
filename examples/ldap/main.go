@@ -12,8 +12,9 @@ import (
 
 func run() error {
 	var (
-		debug    bool
-		authOpts = &adauth.Options{
+		debug       bool
+		socksServer = os.Getenv("SOCKS5_SERVER")
+		authOpts    = &adauth.Options{
 			Debug: adauth.NewDebugFunc(&debug, os.Stderr, true),
 		}
 		ldapOpts = &ldapauth.Options{
@@ -22,9 +23,12 @@ func run() error {
 	)
 
 	pflag.CommandLine.BoolVar(&debug, "debug", false, "Enable debug output")
+	pflag.CommandLine.StringVar(&socksServer, "socks", socksServer, "SOCKS5 proxy server")
 	authOpts.RegisterFlags(pflag.CommandLine)
 	ldapOpts.RegisterFlags(pflag.CommandLine)
 	pflag.Parse()
+
+	ldapOpts.SetDialer(adauth.DialerWithSOCKS5ProxyIfSet(socksServer, nil))
 
 	conn, err := ldapauth.Connect(context.Background(), authOpts, ldapOpts)
 	if err != nil {

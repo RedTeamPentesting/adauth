@@ -3,6 +3,7 @@ package dcerpcauth
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/RedTeamPentesting/adauth"
@@ -25,8 +26,11 @@ type Options struct {
 	// will be enabled for the SMB dialer, specify an empty slice to disable
 	// this default.
 	SMBOptions []smb2.DialerOption
-	// PKINITOptions can be used to modify the Kerberos PKINIT behavior.
-	PKINITOptions []pkinit.Option
+
+	// KerberosDialer is a custom dialer that is used to request Kerberos
+	// tickets.
+	KerberosDialer adauth.Dialer
+
 	// Debug can be set to enable debug output, for example with
 	// adauth.NewDebugFunc(...).
 	Debug func(string, ...any)
@@ -85,6 +89,7 @@ func AuthenticationOptions(
 				CCachePath:      creds.CCache,
 				DisablePAFXFAST: true,
 				DCEStyle:        true,
+				KDCDialer:       upstreamOptions.KerberosDialer,
 			}),
 		))
 
@@ -96,6 +101,7 @@ func AuthenticationOptions(
 				CCachePath:      creds.CCache,
 				DisablePAFXFAST: true,
 				DCEStyle:        true,
+				KDCDialer:       upstreamOptions.KerberosDialer,
 			}),
 			dcerpc.WithSMBDialer(smb2.NewDialer(smbOptions...)),
 		)
@@ -148,8 +154,13 @@ func DCERPCCredentials(ctx context.Context, creds *adauth.Credential, options *O
 			return nil, fmt.Errorf("generate kerberos config: %w", err)
 		}
 
+		dialer := options.KerberosDialer
+		if dialer == nil {
+			dialer = &net.Dialer{Timeout: pkinit.DefaultKerberosRoundtripDeadline}
+		}
+
 		ccache, err := pkinit.Authenticate(ctx, creds.Username, strings.ToUpper(creds.Domain),
-			creds.ClientCert, creds.ClientCertKey, krbConf, options.PKINITOptions...)
+			creds.ClientCert, creds.ClientCertKey, krbConf, pkinit.WithDialer(adauth.AsContextDialer(dialer)))
 		if err != nil {
 			return nil, fmt.Errorf("PKINIT: %w", err)
 		}

@@ -18,8 +18,9 @@ import (
 
 func run() error {
 	var (
-		debug    bool
-		authOpts = &adauth.Options{
+		debug       bool
+		socksServer = os.Getenv("SOCKS5_SERVER")
+		authOpts    = &adauth.Options{
 			Debug: adauth.NewDebugFunc(&debug, os.Stderr, true),
 		}
 		dcerpcauthOpts = &dcerpcauth.Options{
@@ -29,6 +30,7 @@ func run() error {
 	)
 
 	pflag.CommandLine.BoolVar(&debug, "debug", false, "Enable debug output")
+	pflag.CommandLine.StringVar(&socksServer, "socks", socksServer, "SOCKS5 proxy server")
 	pflag.CommandLine.BoolVar(&namedPipe, "named-pipe", false, "Use named pipe (SMB) as transport")
 	authOpts.RegisterFlags(pflag.CommandLine)
 	pflag.Parse()
@@ -36,6 +38,8 @@ func run() error {
 	if len(pflag.Args()) != 1 {
 		return fmt.Errorf("usage: %s [options] <target>", binaryName())
 	}
+
+	dcerpcauthOpts.KerberosDialer = adauth.DialerWithSOCKS5ProxyIfSet(socksServer, nil)
 
 	creds, target, err := authOpts.WithTarget(context.Background(), "host", pflag.Arg(0))
 	if err != nil {
@@ -49,10 +53,13 @@ func run() error {
 		return err
 	}
 
-	dcerpcOpts = append(dcerpcOpts, epm.EndpointMapper(ctx,
-		net.JoinHostPort(target.AddressWithoutPort(), "135"),
-		dcerpc.WithInsecure(),
-	))
+	dcerpcOpts = append(dcerpcOpts,
+		epm.EndpointMapper(ctx,
+			net.JoinHostPort(target.AddressWithoutPort(), "135"),
+			dcerpc.WithInsecure(),
+		),
+		dcerpc.WithDialer(adauth.DialerWithSOCKS5ProxyIfSet(socksServer, nil)),
+	)
 
 	proto := "ncacn_ip_tcp:"
 	if namedPipe {

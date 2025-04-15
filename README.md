@@ -64,20 +64,24 @@ PKINIT implementation as well as helpers for creating and writing CCache files
   * UnPAC-the-Hash
   * Pass-the-Hash (RC4/NT or AES key)
   * CCache (containing TGT or ST)
+  * SOCKS5 support
 * NTLM:
   * Pass-the-Hash
 * LDAP:
   * Kerberos, NTLM, Simple Bind
   * mTLS Authentication / Pass-the-Certificate (LDAPS or LDAP+StartTLS)
   * Channel Binding (Kerberos and NTLM)
+  * SOCKS5 support
 * SMB:
   * Kerberos, NTLM
   * Signing and Sealing
+  * SOCKS5 support
 * DCERPC:
   * Kerberos, NTLM
   * Raw endpoits (with port mapping)
   * Named pipes (SMB)
   * Signing and Sealing
+  * SOCKS5 support
 
 ## Caveats
 
