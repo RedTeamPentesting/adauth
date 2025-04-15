@@ -26,6 +26,7 @@ import (
 
 	"github.com/go-ldap/ldap/v3"
 	"github.com/oiweiwei/gokrb5.fork/v9/client"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/flags"
 	"github.com/spf13/pflag"
 )
 
@@ -260,7 +261,10 @@ func bind(
 			return fmt.Errorf("build SPN: %w", err)
 		}
 
-		err = conn.GSSAPIBind(authClient, spn, creds.NTHash)
+		err = conn.GSSAPIBindRequestWithAPOptions(authClient, &ldap.GSSAPIBindRequest{
+			ServicePrincipalName: spn,
+			AuthZID:              creds.NTHash,
+		}, []int{flags.APOptionMutualRequired})
 		if err != nil {
 			return fmt.Errorf("GSSAPI bind: %w", err)
 		}
