@@ -131,14 +131,14 @@ func (client *gssapiClient) getServiceTicket(target string) (tkt messages.Ticket
 }
 
 func (client *gssapiClient) newKRB5TokenAPREQ(
-	tkt messages.Ticket, ekey types.EncryptionKey,
+	tkt messages.Ticket, ekey types.EncryptionKey, apOptions []int,
 ) (*spnego.KRB5Token, error) {
 	gssapiFlags := []int{krb5GSSAPI.ContextFlagInteg, krb5GSSAPI.ContextFlagConf, krb5GSSAPI.ContextFlagMutual}
 
 	// this actually does nothing important, we simply use it to obtain a dummy
 	// KRB5Token with tokID set, which unfortunately is private, so we cannot
 	// initialize it ourselves.
-	token, err := spnego.NewKRB5TokenAPREQ(client.Client, tkt, ekey, gssapiFlags, []int{flags.APOptionMutualRequired})
+	token, err := spnego.NewKRB5TokenAPREQ(client.Client, tkt, ekey, gssapiFlags, apOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -167,10 +167,13 @@ func (client *gssapiClient) newKRB5TokenAPREQ(
 	return &token, nil
 }
 
-// InitSecContext initiates the establishment of a security context for
-// GSS-API between the client and server.
-// See RFC 4752 section 3.1.
 func (client *gssapiClient) InitSecContext(target string, input []byte) ([]byte, bool, error) {
+	return client.InitSecContextWithOptions(target, input, []int{flags.APOptionMutualRequired})
+}
+
+func (client *gssapiClient) InitSecContextWithOptions(
+	target string, input []byte, options []int,
+) (outputToken []byte, needContinue bool, err error) {
 	switch input {
 	case nil:
 		tkt, ekey, err := client.getServiceTicket(target)
@@ -180,7 +183,7 @@ func (client *gssapiClient) InitSecContext(target string, input []byte) ([]byte,
 
 		client.ekey = ekey
 
-		token, err := client.newKRB5TokenAPREQ(tkt, ekey)
+		token, err := client.newKRB5TokenAPREQ(tkt, ekey, options)
 		if err != nil {
 			return nil, false, err
 		}
