@@ -243,7 +243,9 @@ func bind(
 
 		tlsState, ok := conn.TLSConnectionState()
 		if ok && !opts.DisableChannelBinding {
-			bindRequest.Negotiator = ntlmNegotiatorWithChannelBinding(tlsState.PeerCertificates[0])
+			bindRequest.Negotiator = ntlmNegotiatorWithChannelBinding(tlsState.PeerCertificates[0], creds.Domain)
+		} else {
+			bindRequest.Negotiator = ntlmNegotiatorForDomain(creds.Domain)
 		}
 
 		_, err = conn.NTLMChallengeBind(bindRequest)

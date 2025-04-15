@@ -10,13 +10,18 @@ import (
 )
 
 type ntlmNegotiator struct {
-	cert *x509.Certificate
+	cert               *x509.Certificate
+	overrideTargetName string
 }
 
 var _ ldap.NTLMNegotiator = &ntlmNegotiator{}
 
-func ntlmNegotiatorWithChannelBinding(cert *x509.Certificate) ldap.NTLMNegotiator {
-	return &ntlmNegotiator{cert: cert}
+func ntlmNegotiatorWithChannelBinding(cert *x509.Certificate, domain string) ldap.NTLMNegotiator {
+	return &ntlmNegotiator{cert: cert, overrideTargetName: domain}
+}
+
+func ntlmNegotiatorForDomain(domain string) ldap.NTLMNegotiator {
+	return &ntlmNegotiator{overrideTargetName: domain}
 }
 
 func (n *ntlmNegotiator) Negotiate(domain string, worktation string) ([]byte, error) {
@@ -46,6 +51,17 @@ func (n *ntlmNegotiator) ChallengeResponse(challenge []byte, username string, ha
 	// drop end-of-list marker if present because we want to add another entry
 	if len(cm.TargetInfo.List) > 0 && cm.TargetInfo.List[len(cm.TargetInfo.List)-1].AvId == ntlm.MsvAvEOL {
 		cm.TargetInfo.List = cm.TargetInfo.List[:len(cm.TargetInfo.List)-1]
+	}
+
+	// Authenticate with the domain name that was specified, not the domain that
+	// the server advertises. This grants compatibility with the LDAP SOCKS
+	// feature of ntlmrelayx.py which is sensitive to the exact domain name (DNS
+	// vs NetBIOS name).
+	if n.overrideTargetName != "" && n.overrideTargetName != "." {
+		cm.TargetName, err = ntlm.CreateStringPayload(n.overrideTargetName)
+		if err != nil {
+			return nil, fmt.Errorf("override target name: create string payload: %w", err)
+		}
 	}
 
 	// add channel bindings
