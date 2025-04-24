@@ -46,7 +46,8 @@ func Dialer(
 	ctx context.Context, creds *adauth.Credential, target *adauth.Target, options *Options,
 ) (*smb2.Dialer, error) {
 	smbCreds, err := dcerpcauth.DCERPCCredentials(ctx, creds, &dcerpcauth.Options{
-		Debug: options.debug,
+		Debug:          options.debug,
+		KerberosDialer: options.KerberosDialer,
 	})
 	if err != nil {
 		return nil, err
@@ -78,6 +79,7 @@ func Dialer(
 				KRB5Config:      krbConf,
 				CCachePath:      creds.CCache,
 				DisablePAFXFAST: true,
+				KDCDialer:       options.KerberosDialer,
 			}),
 		))
 
