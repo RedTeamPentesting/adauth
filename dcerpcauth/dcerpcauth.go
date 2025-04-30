@@ -9,7 +9,6 @@ import (
 	"github.com/RedTeamPentesting/adauth"
 	"github.com/RedTeamPentesting/adauth/pkinit"
 
-	"github.com/jcmturner/gokrb5/v8/keytab"
 	"github.com/oiweiwei/go-msrpc/dcerpc"
 	"github.com/oiweiwei/go-msrpc/smb2"
 	"github.com/oiweiwei/go-msrpc/ssp"
@@ -132,12 +131,11 @@ func DCERPCCredentials(ctx context.Context, creds *adauth.Credential, options *O
 	case creds.AESKey != "":
 		options.debug("Authenticating with AES key")
 
-		keyTab, err := creds.Keytab()
+		key, keyType, err := adauth.ParseAESKey(creds.AESKey)
 		if err != nil {
-			return nil, fmt.Errorf("create keytab: %w", err)
+			return nil, fmt.Errorf("parse AES key: %w", err)
 		}
-
-		return &keytabCredentials{username: creds.Username, domain: creds.Domain, keytab: keyTab}, nil
+		return credential.NewFromEncryptionKeyBytes(creds.LogonNameWithUpperCaseDomain(), int(keyType), key), nil
 	case creds.NTHash != "":
 		options.debug("Authenticating with NT hash")
 
@@ -173,28 +171,4 @@ func DCERPCCredentials(ctx context.Context, creds *adauth.Credential, options *O
 	default:
 		return nil, fmt.Errorf("no credentials available")
 	}
-}
-
-type keytabCredentials struct {
-	keytab   *keytab.Keytab
-	username string
-	domain   string
-}
-
-var _ credential.KeytabV8 = &keytabCredentials{}
-
-func (ktc *keytabCredentials) DomainName() string {
-	return strings.ToUpper(ktc.domain)
-}
-
-func (ctc *keytabCredentials) Workstation() string {
-	return ""
-}
-
-func (ctc *keytabCredentials) UserName() string {
-	return ctc.username
-}
-
-func (ctc *keytabCredentials) Keytab() *keytab.Keytab {
-	return ctc.keytab
 }
