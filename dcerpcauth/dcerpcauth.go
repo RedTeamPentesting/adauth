@@ -135,6 +135,7 @@ func DCERPCCredentials(ctx context.Context, creds *adauth.Credential, options *O
 		if err != nil {
 			return nil, fmt.Errorf("parse AES key: %w", err)
 		}
+
 		return credential.NewFromEncryptionKeyBytes(creds.LogonNameWithUpperCaseDomain(), int(keyType), key), nil
 	case creds.NTHash != "":
 		options.debug("Authenticating with NT hash")
