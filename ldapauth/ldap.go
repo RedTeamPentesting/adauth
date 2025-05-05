@@ -11,6 +11,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"net"
@@ -26,7 +27,9 @@ import (
 
 	"github.com/go-ldap/ldap/v3"
 	"github.com/oiweiwei/gokrb5.fork/v9/client"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/etypeID"
 	"github.com/oiweiwei/gokrb5.fork/v9/iana/flags"
+	"github.com/oiweiwei/gokrb5.fork/v9/types"
 	"github.com/spf13/pflag"
 )
 
@@ -353,19 +356,57 @@ func kerberosClient(
 		}
 
 		authClient.BindCertificate = cert
-	case creds.NTHash != "" || creds.AESKey != "":
-		opts.Debug("authenticating using GSSAPI bind (key)")
+	case creds.NTHash != "":
+		opts.Debug("authenticating using GSSAPI bind (NT hash)")
 
-		keyTab, err := creds.Keytab()
+		ntHash, err := hex.DecodeString(creds.NTHash)
 		if err != nil {
-			return nil, fmt.Errorf("create keytab: %w", err)
+			return nil, fmt.Errorf("decode NT hash: %w", err)
 		}
 
 		authClient = &gssapiClient{
-			Client: client.NewWithKeytab(
+			Client: client.NewWithEncryptionKey(
 				creds.Username,
 				strings.ToUpper(creds.Domain),
-				compat.Gokrb5ForkV9Keytab(keyTab),
+				types.EncryptionKey{
+					KeyType:  etypeID.RC4_HMAC,
+					KeyValue: ntHash,
+				},
+				compat.Gokrb5ForkV9KerberosConfig(krbConf),
+				client.DisablePAFXFAST(true),
+				client.Dialer(opts.KerberosDialer),
+			),
+			BindCertificate: cert,
+		}
+
+		authClient.BindCertificate = cert
+	case creds.AESKey != "":
+		opts.Debug("authenticating using GSSAPI bind (AES key)")
+
+		aesKey, err := hex.DecodeString(creds.AESKey)
+		if err != nil {
+			return nil, fmt.Errorf("decode AES key: %w", err)
+		}
+
+		var keyType int32
+
+		switch len(aesKey) {
+		case 32:
+			keyType = etypeID.AES256_CTS_HMAC_SHA1_96
+		case 16:
+			keyType = etypeID.AES128_CTS_HMAC_SHA1_96
+		default:
+			return nil, fmt.Errorf("invalid AES128/AES256 key: key size is %d bytes", len(aesKey))
+		}
+
+		authClient = &gssapiClient{
+			Client: client.NewWithEncryptionKey(
+				creds.Username,
+				strings.ToUpper(creds.Domain),
+				types.EncryptionKey{
+					KeyType:  keyType,
+					KeyValue: aesKey,
+				},
 				compat.Gokrb5ForkV9KerberosConfig(krbConf),
 				client.DisablePAFXFAST(true),
 				client.Dialer(opts.KerberosDialer),

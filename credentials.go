@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/hex"
 	"fmt"
 	"net"
 	"os"
@@ -13,9 +12,7 @@ import (
 
 	"github.com/RedTeamPentesting/adauth/othername"
 	"github.com/jcmturner/gokrb5/v8/config"
-	"github.com/jcmturner/gokrb5/v8/credentials"
 	"github.com/jcmturner/gokrb5/v8/iana/etypeID"
-	"github.com/jcmturner/gokrb5/v8/keytab"
 	"software.sslmate.com/src/go-pkcs12"
 )
 
@@ -156,30 +153,6 @@ func (c *Credential) mustUseKerberos() bool {
 	return c.Password == "" && c.NTHash == "" && (c.CCache != "" || c.AESKey != "")
 }
 
-// Keytab returns the Kerberos keytab containing the AES key and/or NT hash if
-// they were supplied. If a password is supplied, the keys/hashes are not
-// derived and the keytab will be empty. For compatibility with other Kerberos
-// libraries, see the `compat` package.
-func (c *Credential) Keytab() (*keytab.Keytab, error) {
-	kt := newKeytab()
-
-	if c.AESKey != "" {
-		err := addKeyToKeytab(kt, c.Username, c.Domain, c.AESKey, true, 1)
-		if err != nil {
-			return nil, fmt.Errorf("add AES key: %w", err)
-		}
-	}
-
-	if c.NTHash != "" {
-		err := addKeyToKeytab(kt, c.Username, c.Domain, c.NTHash, false, 1)
-		if err != nil {
-			return nil, fmt.Errorf("add RC4 key: %w", err)
-		}
-	}
-
-	return kt, nil
-}
-
 // KerberosConfig returns the Kerberos configuration for the credential's
 // domain. For compatibility with other Kerberos libraries, see the `compat`
 // package.
@@ -271,81 +244,4 @@ func splitUserIntoDomainAndUsername(user string) (domain string, username string
 	default:
 		return "", user
 	}
-}
-
-func newKeytab() *keytab.Keytab {
-	kt := &keytab.Keytab{}
-
-	err := kt.Unmarshal([]byte{
-		// header.
-		0x05,                   // first-byte
-		0x02,                   // version
-		0x00, 0x00, 0x00, 0x00, // entry-length
-	})
-	if err != nil {
-		panic(err.Error())
-	}
-
-	return kt
-}
-
-func addKeyToKeytab(kt *keytab.Keytab, username string, domain string, key string, aes bool, kvno uint32) error {
-	keyBytes, err := hex.DecodeString(key)
-	if err != nil {
-		return fmt.Errorf("decode AES key: %w", err)
-	}
-
-	var keyType int32
-
-	switch len(keyBytes) {
-	case 32:
-		keyType = etypeID.AES256_CTS_HMAC_SHA1_96
-	case 16:
-		if aes {
-			keyType = etypeID.AES128_CTS_HMAC_SHA1_96
-		} else {
-			keyType = etypeID.RC4_HMAC
-		}
-	default:
-		return fmt.Errorf("invalid AES128/AES256 key")
-	}
-
-	tmp := &keytab.Keytab{}
-
-	err = tmp.Unmarshal([]byte{
-		// header
-		0x05,                   // first-byte
-		0x02,                   // version
-		0x00, 0x00, 0x00, 0x11, // entry-length
-		// principal
-		0x00, 0x00, // num components
-		0x00, 0x00, // realm length
-		0x00, 0x00, 0x00, 0x00, // name type
-		// key
-		0x00, 0x00, 0x00, 0x00, // timestamp
-		0x00,       // kvno8
-		0x00, 0x00, // key type
-		0x00, 0x00, // key length
-	})
-	if err != nil {
-		return fmt.Errorf("invalid dummy data: %w", err)
-	}
-
-	e := tmp.Entries[0]
-
-	krbCreds := credentials.New(username, domain)
-	e.Principal.NumComponents = int16(len(krbCreds.CName().NameString))
-	e.Principal.Components = krbCreds.CName().NameString
-	e.Principal.Realm = strings.ToUpper(krbCreds.Realm())
-	e.Principal.NameType = krbCreds.CName().NameType
-
-	e.Timestamp = time.Now()
-	e.KVNO8 = 0
-	e.Key.KeyType = keyType
-	e.Key.KeyValue = keyBytes
-	e.KVNO = kvno
-
-	kt.Entries = append(kt.Entries, e)
-
-	return nil
 }

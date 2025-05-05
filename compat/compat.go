@@ -5,10 +5,8 @@ package compat
 import (
 	"github.com/jcmturner/gokrb5/v8/config"
 	"github.com/jcmturner/gokrb5/v8/credentials"
-	"github.com/jcmturner/gokrb5/v8/keytab"
 	gokrb5ForkConfig "github.com/oiweiwei/gokrb5.fork/v9/config"
 	gokrb5ForkCredentials "github.com/oiweiwei/gokrb5.fork/v9/credentials"
-	gokrb5ForkKeytab "github.com/oiweiwei/gokrb5.fork/v9/keytab"
 	gokrb5ForkTypes "github.com/oiweiwei/gokrb5.fork/v9/types"
 
 	"github.com/jcmturner/gokrb5/v8/types"
@@ -73,29 +71,5 @@ func Gokrb5ForkV9Principal(realm string, principalName types.PrincipalName) gokr
 	return gokrb5ForkCredentials.Principal{
 		Realm:         realm,
 		PrincipalName: gokrb5ForkTypes.PrincipalName(principalName),
-	}
-}
-
-func Gokrb5ForkV9Keytab(keytab *keytab.Keytab) *gokrb5ForkKeytab.Keytab {
-	entries := make([]gokrb5ForkKeytab.Entry, 0, len(keytab.Entries))
-
-	for _, entry := range keytab.Entries {
-		entries = append(entries, gokrb5ForkKeytab.Entry{
-			Principal: gokrb5ForkKeytab.Principal{
-				NumComponents: entry.Principal.NumComponents,
-				Realm:         entry.Principal.Realm,
-				Components:    entry.Principal.Components,
-				NameType:      entry.Principal.NameType,
-			},
-			Timestamp: entry.Timestamp,
-			KVNO8:     entry.KVNO8,
-			Key:       gokrb5ForkTypes.EncryptionKey(entry.Key),
-			KVNO:      entry.KVNO,
-		})
-	}
-
-	return &gokrb5ForkKeytab.Keytab{
-		Version: 2,
-		Entries: entries,
 	}
 }
