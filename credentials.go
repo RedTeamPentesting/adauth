@@ -349,22 +349,3 @@ func addKeyToKeytab(kt *keytab.Keytab, username string, domain string, key strin
 
 	return nil
 }
-
-// ParseAESKey decodes the supplied hex Kerberos AES key and determines the key type.
-func ParseAESKey(key string) (keyBytes []byte, keyType int32, err error) {
-	keyBytes, err = hex.DecodeString(key)
-	if err != nil {
-		return nil, 0, fmt.Errorf("decode hex key: %w", err)
-	}
-
-	switch len(keyBytes) {
-	case 32:
-		keyType = etypeID.AES256_CTS_HMAC_SHA1_96
-	case 16:
-		keyType = etypeID.AES128_CTS_HMAC_SHA1_96
-	default:
-		return nil, 0, fmt.Errorf("invalid AES128/AES256 key")
-	}
-
-	return
-}

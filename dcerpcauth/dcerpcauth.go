@@ -2,12 +2,14 @@ package dcerpcauth
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"strings"
 
 	"github.com/RedTeamPentesting/adauth"
 	"github.com/RedTeamPentesting/adauth/pkinit"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/etypeID"
 
 	"github.com/oiweiwei/go-msrpc/dcerpc"
 	"github.com/oiweiwei/go-msrpc/smb2"
@@ -131,12 +133,23 @@ func DCERPCCredentials(ctx context.Context, creds *adauth.Credential, options *O
 	case creds.AESKey != "":
 		options.debug("Authenticating with AES key")
 
-		key, keyType, err := adauth.ParseAESKey(creds.AESKey)
+		keyBytes, err := hex.DecodeString(creds.AESKey)
 		if err != nil {
-			return nil, fmt.Errorf("parse AES key: %w", err)
+			return nil, fmt.Errorf("decode hex key: %w", err)
 		}
 
-		return credential.NewFromEncryptionKeyBytes(creds.LogonNameWithUpperCaseDomain(), int(keyType), key), nil
+		var keyType int
+
+		switch len(keyBytes) {
+		case 32:
+			keyType = int(etypeID.AES256_CTS_HMAC_SHA1_96)
+		case 16:
+			keyType = int(etypeID.AES128_CTS_HMAC_SHA1_96)
+		default:
+			return nil, fmt.Errorf("invalid AES128/AES256 key: key size is %d bytes", len(keyBytes))
+		}
+
+		return credential.NewFromEncryptionKeyBytes(creds.LogonNameWithUpperCaseDomain(), keyType, keyBytes), nil
 	case creds.NTHash != "":
 		options.debug("Authenticating with NT hash")
 
