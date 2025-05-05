@@ -29,7 +29,7 @@ func (n *ntlmNegotiator) Negotiate(domain string, worktation string) ([]byte, er
 }
 
 func (n *ntlmNegotiator) ChallengeResponse(challenge []byte, username string, hash string) ([]byte, error) {
-	if n.cert == nil {
+	if n.cert == nil && n.overrideTargetName == "" {
 		// no cert means no channel binding, so Azure/ntlmssp can handle
 		// authentication alone.
 		return ntlmssp.ProcessChallengeWithHash(challenge, username, hash)
@@ -64,9 +64,11 @@ func (n *ntlmNegotiator) ChallengeResponse(challenge []byte, username string, ha
 		}
 	}
 
-	// add channel bindings
-	cm.TargetInfo.AddAvPair(ntlm.MsvChannelBindings, ChannelBindingHash(n.cert))
-	cm.TargetInfo.AddAvPair(ntlm.MsvAvEOL, nil)
+	if n.cert != nil {
+		// add channel bindings
+		cm.TargetInfo.AddAvPair(ntlm.MsvChannelBindings, ChannelBindingHash(n.cert))
+		cm.TargetInfo.AddAvPair(ntlm.MsvAvEOL, nil)
+	}
 
 	// make sure that the server cannot make cm.Bytes() panic by omitting the
 	// version.
