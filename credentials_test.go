@@ -67,3 +67,41 @@ func TestLookupDC(t *testing.T) {
 		t.Fatalf("DC address is %q instead of %q", dc.Address(), dcHostname)
 	}
 }
+
+func TestUPN(t *testing.T) {
+	t.Run("user and domain", func(t *testing.T) {
+		expcetedUPN := "foo@bar"
+		upn := (&adauth.Credential{Username: "foo", Domain: "bar"}).UPN()
+
+		if upn != expcetedUPN {
+			t.Errorf("UPN is %q insteaf of %q", upn, expcetedUPN)
+		}
+	})
+
+	t.Run("user without domain", func(t *testing.T) {
+		expcetedUPN := "foo"
+		upn := (&adauth.Credential{Username: "foo"}).UPN()
+
+		if upn != expcetedUPN {
+			t.Errorf("UPN is %q insteaf of %q", upn, expcetedUPN)
+		}
+	})
+
+	t.Run("domain without username", func(t *testing.T) {
+		expcetedUPN := "@bar"
+		upn := (&adauth.Credential{Domain: "bar"}).UPN()
+
+		if upn != expcetedUPN {
+			t.Errorf("UPN is %q insteaf of %q", upn, expcetedUPN)
+		}
+	})
+
+	t.Run("no username and no domain", func(t *testing.T) {
+		expcetedUPN := ""
+		upn := (&adauth.Credential{}).UPN()
+
+		if upn != expcetedUPN {
+			t.Errorf("UPN is %q insteaf of %q", upn, expcetedUPN)
+		}
+	})
+}

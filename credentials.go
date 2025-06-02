@@ -101,9 +101,18 @@ func CredentialFromPFXBytes(
 	return cred, nil
 }
 
-// UPN is the user principal name (username@domain).
+// UPN is the user principal name (username@domain). If the credential does not
+// contain a domain, only the username is returned. If username and domain are
+// empty, the UPN will be empty, too.
 func (c *Credential) UPN() string {
-	return c.Username + "@" + c.Domain
+	switch {
+	case c.Username == "" && c.Domain == "":
+		return ""
+	case c.Domain == "":
+		return c.Username
+	default:
+		return c.Username + "@" + c.Domain
+	}
 }
 
 // LogonName is the legacy logon name (domain\username).
