@@ -197,6 +197,8 @@ func connect(ctx context.Context, target *adauth.Target, opts *Options) (conn *l
 		opts.Debug("connected to LDAP server %s", target.Address())
 
 		if opts.StartTLS {
+			opts.Debug("negotiating StartTLS")
+
 			err = conn.StartTLS(opts.TLSConfig)
 			if err != nil {
 				_ = conn.Close()
@@ -216,15 +218,19 @@ func bind(
 ) (err error) {
 	switch {
 	case opts.SimpleBind:
-		opts.Debug("authenticating using simple bind")
-
-		if creds.Password == "" && !creds.PasswordIsEmtpyString {
-			return fmt.Errorf("specify a password for simple bind")
+		switch {
+		case creds.Password == "" && !creds.PasswordIsEmtpyString:
+			return fmt.Errorf("specify a password for simple bind or -p '' for an unauthenticated simple bind")
+		case creds.Password == "" && creds.PasswordIsEmtpyString:
+			opts.Debug("using unauthenticated simple bind")
+		default:
+			opts.Debug("authenticating with simple bind")
 		}
 
 		_, err = conn.SimpleBind(&ldap.SimpleBindRequest{
-			Username: creds.UPN(),
-			Password: creds.Password,
+			Username:           creds.UPN(),
+			Password:           creds.Password,
+			AllowEmptyPassword: creds.PasswordIsEmtpyString,
 		})
 		if err != nil {
 			return fmt.Errorf("simple bind: %w", err)
@@ -278,6 +284,8 @@ func bind(
 
 		_, ok := conn.TLSConnectionState()
 		if !ok {
+			opts.Debug("negotiating StartTLS")
+
 			err = conn.StartTLS(opts.TLSConfig)
 			if err != nil {
 				return fmt.Errorf("StartTLS: %w", err)
