@@ -15,23 +15,19 @@ import (
 	"github.com/RedTeamPentesting/adauth/compat"
 	"github.com/RedTeamPentesting/adauth/pkinit"
 	"github.com/jcmturner/gokrb5/v8/config"
-
 	"github.com/oiweiwei/gokrb5.fork/v9/client"
+	"github.com/oiweiwei/gokrb5.fork/v9/credentials"
+	krb5Crypto "github.com/oiweiwei/gokrb5.fork/v9/crypto"
+	krb5GSSAPI "github.com/oiweiwei/gokrb5.fork/v9/gssapi"
 	"github.com/oiweiwei/gokrb5.fork/v9/iana/chksumtype"
 	"github.com/oiweiwei/gokrb5.fork/v9/iana/etypeID"
 	"github.com/oiweiwei/gokrb5.fork/v9/iana/flags"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/keyusage"
 	"github.com/oiweiwei/gokrb5.fork/v9/iana/nametype"
 	"github.com/oiweiwei/gokrb5.fork/v9/krberror"
-	"github.com/oiweiwei/gokrb5.fork/v9/types"
-
-	krb5GSSAPI "github.com/oiweiwei/gokrb5.fork/v9/gssapi"
-	"github.com/oiweiwei/gokrb5.fork/v9/spnego"
-
-	krb5Crypto "github.com/oiweiwei/gokrb5.fork/v9/crypto"
-	"github.com/oiweiwei/gokrb5.fork/v9/iana/keyusage"
 	"github.com/oiweiwei/gokrb5.fork/v9/messages"
-
-	"github.com/oiweiwei/gokrb5.fork/v9/credentials"
+	"github.com/oiweiwei/gokrb5.fork/v9/spnego"
+	"github.com/oiweiwei/gokrb5.fork/v9/types"
 )
 
 type gssapiClient struct {
@@ -97,7 +93,7 @@ func newPKINITClient(
 
 // Close deletes any established secure context and closes the client.
 func (client *gssapiClient) Close() error {
-	client.Client.Destroy()
+	client.Destroy()
 
 	return nil
 }
@@ -127,7 +123,7 @@ func (client *gssapiClient) getServiceTicket(target string) (tkt messages.Ticket
 		return tkt, entry.Key, tkt.Unmarshal(entry.Ticket)
 	}
 
-	return client.Client.GetServiceTicket(target)
+	return client.GetServiceTicket(target)
 }
 
 func (client *gssapiClient) newKRB5TokenAPREQ(
@@ -320,7 +316,8 @@ func unmarshalWrapToken(wt *krb5GSSAPI.WrapToken, data []byte, expectFromAccepto
 
 	// Sanity check on the checksum length
 	if int(checksumL) > len(data)-krb5GSSAPI.HdrLen {
-		return fmt.Errorf("inconsistent checksum length: %d bytes to parse, checksum length is %d", len(data), checksumL)
+		return fmt.Errorf("inconsistent checksum length: %d bytes to parse, checksum length is %d",
+			len(data), checksumL)
 	}
 
 	payloadStart := 16 + checksumL

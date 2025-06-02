@@ -59,7 +59,7 @@ func (r *resolver) LookupFirstService(ctx context.Context, protocol string, doma
 func (r *resolver) LookupDCByDomain(ctx context.Context, domain string) (string, error) {
 	// Unfortunately, Go does not implement SOA lookups, so we lookup the domain
 	// for DC IPs and reverse lookup their hostnames instead.
-	dcAddrs, err := r.Resolver.LookupIP(context.Background(), "ip", domain)
+	dcAddrs, err := r.LookupIP(context.Background(), "ip", domain)
 	if err != nil {
 		return "", fmt.Errorf("lookup domain itself: %w", err)
 	}
@@ -70,7 +70,7 @@ func (r *resolver) LookupDCByDomain(ctx context.Context, domain string) (string,
 
 	dcAddr := dcAddrs[0].String()
 
-	names, err := r.Resolver.LookupAddr(context.Background(), dcAddr)
+	names, err := r.LookupAddr(context.Background(), dcAddr)
 	if err == nil {
 		domain, names = splitResultsInDomainAndHostname(names, domain)
 

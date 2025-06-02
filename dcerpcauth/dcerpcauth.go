@@ -9,14 +9,13 @@ import (
 
 	"github.com/RedTeamPentesting/adauth"
 	"github.com/RedTeamPentesting/adauth/pkinit"
-	"github.com/oiweiwei/gokrb5.fork/v9/iana/etypeID"
-
 	"github.com/oiweiwei/go-msrpc/dcerpc"
 	"github.com/oiweiwei/go-msrpc/smb2"
 	"github.com/oiweiwei/go-msrpc/ssp"
 	"github.com/oiweiwei/go-msrpc/ssp/credential"
 	"github.com/oiweiwei/go-msrpc/ssp/gssapi"
 	"github.com/oiweiwei/go-msrpc/ssp/krb5"
+	"github.com/oiweiwei/gokrb5.fork/v9/iana/etypeID"
 )
 
 // Options holds options that modify the behavior of the AuthenticationOptions

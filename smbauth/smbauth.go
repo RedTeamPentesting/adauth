@@ -6,13 +6,11 @@ import (
 
 	"github.com/RedTeamPentesting/adauth"
 	"github.com/RedTeamPentesting/adauth/dcerpcauth"
-
-	"github.com/oiweiwei/go-smb2.fork"
-
 	msrpcSMB2 "github.com/oiweiwei/go-msrpc/smb2"
 	"github.com/oiweiwei/go-msrpc/ssp"
 	"github.com/oiweiwei/go-msrpc/ssp/gssapi"
 	"github.com/oiweiwei/go-msrpc/ssp/krb5"
+	"github.com/oiweiwei/go-smb2.fork"
 )
 
 // Options holds options that modify the behavior of the Dialer function.

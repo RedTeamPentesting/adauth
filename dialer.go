@@ -40,7 +40,12 @@ func AsContextDialer(d Dialer) ContextDialer {
 }
 
 // SOCKS5Dialer returns a SOCKS5 dialer.
-func SOCKS5Dialer(network string, address string, auth *proxy.Auth, forward *net.Dialer) ContextDialer {
+func SOCKS5Dialer(
+	network string,
+	address string,
+	auth *proxy.Auth,
+	forward *net.Dialer,
+) ContextDialer {
 	proxyDialer, err := proxy.SOCKS5(network, address, auth, forward)
 	if err != nil {
 		return nopContextDialer(func(s1, s2 string) (net.Conn, error) {

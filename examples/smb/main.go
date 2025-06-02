@@ -6,9 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RedTeamPentesting/adauth/smbauth"
-
 	"github.com/RedTeamPentesting/adauth"
+	"github.com/RedTeamPentesting/adauth/smbauth"
 	"github.com/spf13/pflag"
 )
 

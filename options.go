@@ -48,7 +48,8 @@ func (opts *Options) RegisterFlags(flagset *pflag.FlagSet) {
 		ccacheHint = " (defaults to $KRB5CCNAME, currently unset)"
 	}
 
-	flagset.StringVarP(&opts.User, "user", "u", "", "Username ('`user@domain`', 'domain\\user', 'domain/user' or 'user')")
+	flagset.StringVarP(&opts.User, "user", "u", "",
+		"Username ('`user@domain`', 'domain\\user', 'domain/user' or 'user')")
 	flagset.StringVarP(&opts.Password, "password", "p", "", "Password")
 	flagset.StringVarP(&opts.NTHash, "nt-hash", "H", "", "NT `hash` ('NT', ':NT' or 'LM:NT')")
 	flagset.StringVar(&opts.AESKey, "aes-key", "", "Kerberos AES `hex key`")

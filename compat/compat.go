@@ -5,11 +5,10 @@ package compat
 import (
 	"github.com/jcmturner/gokrb5/v8/config"
 	"github.com/jcmturner/gokrb5/v8/credentials"
+	"github.com/jcmturner/gokrb5/v8/types"
 	gokrb5ForkConfig "github.com/oiweiwei/gokrb5.fork/v9/config"
 	gokrb5ForkCredentials "github.com/oiweiwei/gokrb5.fork/v9/credentials"
 	gokrb5ForkTypes "github.com/oiweiwei/gokrb5.fork/v9/types"
-
-	"github.com/jcmturner/gokrb5/v8/types"
 )
 
 func Gokrb5ForkV9KerberosConfig(cfg *config.Config) *gokrb5ForkConfig.Config {

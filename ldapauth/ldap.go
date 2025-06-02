@@ -23,14 +23,13 @@ import (
 	"github.com/RedTeamPentesting/adauth/compat"
 	"github.com/RedTeamPentesting/adauth/othername"
 	"github.com/RedTeamPentesting/adauth/pkinit"
-	"software.sslmate.com/src/go-pkcs12"
-
 	"github.com/go-ldap/ldap/v3"
 	"github.com/oiweiwei/gokrb5.fork/v9/client"
 	"github.com/oiweiwei/gokrb5.fork/v9/iana/etypeID"
 	"github.com/oiweiwei/gokrb5.fork/v9/iana/flags"
 	"github.com/oiweiwei/gokrb5.fork/v9/types"
 	"github.com/spf13/pflag"
+	"software.sslmate.com/src/go-pkcs12"
 )
 
 // Options holds LDAP specific options.

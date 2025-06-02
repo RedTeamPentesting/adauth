@@ -1,5 +1,16 @@
+version: "2"
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+    - golines
+  settings:
+    golines:
+      max-len: 120
 linters:
-  disable-all: true
+  default: none
   enable:
     - asasalint
     - asciicheck
@@ -24,13 +35,10 @@ linters:
     - gocyclo
     - godot
     - godox
-    - gofmt
     - goheader
-    - goimports
     - gosec
     - gomodguard
     - goprintffuncname
-    - gosimple
     - gosmopolitan
     - govet
     - grouper
@@ -76,27 +84,26 @@ linters:
     - whitespace
     - wsl
     - zerologlint
-linters-settings:
-  godox:
-    keywords:
-      - FIXME # FIXME generates a linter warning
-  goconst:
-    min-occurrences: 5
-  tagliatelle:
-    # check the struck tag name case
-    case:
-      rules:
-        json: snake
-        yaml: snake
-  gosec:
-    excludes:
-      - G304 # command execution
-      - G204 # file inclusion
-      - G115 # integer overflow
-      - G401 # weak cryptographic primitive (tell Microsoft, not me)
-      - G501 # weak cryptographic primitive (tell Microsoft, not me)
-      - G505 # weak cryptographic primitive (tell Microsoft, not me)
-      - G402 # InsecureSkipVerify may be true
-
-issues:
-  exclude-use-default: false
+  settings:
+    godox:
+      keywords:
+        - FIXME # FIXME generates a linter warning
+    goconst:
+      min-occurrences: 5
+    tagliatelle:
+      # check the struck tag name case
+      case:
+        rules:
+          json: snake
+          yaml: snake
+    gosec:
+      excludes:
+        - G304 # command execution
+        - G204 # file inclusion
+        - G115 # integer overflow
+        - G401 # weak cryptographic primitive (tell Microsoft, not me)
+        - G501 # weak cryptographic primitive (tell Microsoft, not me)
+        - G505 # weak cryptographic primitive (tell Microsoft, not me)
+        - G402 # InsecureSkipVerify may be true
+    gocyclo:
+      min-complexity: 35

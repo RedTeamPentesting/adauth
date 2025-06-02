@@ -104,7 +104,8 @@ func UnPACTheHash(
 
 	tgsReq, err := messages.NewUser2UserTGSReq(
 		types.NewPrincipalName(nametype.KRB_NT_PRINCIPAL, user), strings.ToUpper(asRep.CRealm), krbConfig,
-		asRep.Ticket, asRep.DecryptedEncPart.Key, types.NewPrincipalName(nametype.KRB_NT_UNKNOWN, user), false, asRep.Ticket)
+		asRep.Ticket, asRep.DecryptedEncPart.Key, types.NewPrincipalName(nametype.KRB_NT_UNKNOWN, user),
+		false, asRep.Ticket)
 	if err != nil {
 		return ccache, nil, fmt.Errorf("generate TGSReq: %w", err)
 	}
@@ -238,7 +239,9 @@ func generatePAData(
 
 	apb, err := apReq.Marshal()
 	if err != nil {
-		return paData, krberror.Errorf(err, krberror.EncodingError, "error marshaling AP_REQ for pre-authentication data")
+		return paData, krberror.Errorf(err, krberror.EncodingError,
+			"error marshaling AP_REQ for pre-authentication data",
+		)
 	}
 
 	return types.PADataSequence{types.PAData{
