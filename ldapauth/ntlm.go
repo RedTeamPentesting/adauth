@@ -42,15 +42,25 @@ func (n *ntlmNegotiator) ChallengeResponse(challenge []byte, username string, ha
 	// then be included in the authenticate message. Unfortunately we need
 	// another NTLM library because message marshalling and unmarshalling is
 	// also not exposed in Azure/ntlmssp.
-
 	cm, err := ntlm.ParseChallengeMessage(challenge)
 	if err != nil {
 		return nil, fmt.Errorf("parse NTLM challenge before injecting channel binding AVPair: %w", err)
 	}
 
-	// drop end-of-list marker if present because we want to add another entry
-	if len(cm.TargetInfo.List) > 0 && cm.TargetInfo.List[len(cm.TargetInfo.List)-1].AvId == ntlm.MsvAvEOL {
-		cm.TargetInfo.List = cm.TargetInfo.List[:len(cm.TargetInfo.List)-1]
+	if n.cert != nil {
+		// drop end-of-list marker if present because we want to add another entry
+		if len(cm.TargetInfo.List) > 0 && cm.TargetInfo.List[len(cm.TargetInfo.List)-1].AvId == ntlm.MsvAvEOL {
+			cm.TargetInfo.List = cm.TargetInfo.List[:len(cm.TargetInfo.List)-1]
+		}
+
+		// add channel bindings
+		cm.TargetInfo.AddAvPair(ntlm.MsvChannelBindings, ChannelBindingHash(n.cert))
+		cm.TargetInfo.AddAvPair(ntlm.MsvAvEOL, nil)
+
+		cm.TargetInfoPayloadStruct, err = ntlm.CreateBytePayload(cm.TargetInfo.Bytes())
+		if err != nil {
+			return nil, fmt.Errorf("marshal AVPairs with injected channel binding AVPair: %w", err)
+		}
 	}
 
 	// Authenticate with the domain name that was specified, not the domain that
@@ -64,21 +74,10 @@ func (n *ntlmNegotiator) ChallengeResponse(challenge []byte, username string, ha
 		}
 	}
 
-	if n.cert != nil {
-		// add channel bindings
-		cm.TargetInfo.AddAvPair(ntlm.MsvChannelBindings, ChannelBindingHash(n.cert))
-		cm.TargetInfo.AddAvPair(ntlm.MsvAvEOL, nil)
-	}
-
 	// make sure that the server cannot make cm.Bytes() panic by omitting the
 	// version.
 	if cm.Version == nil {
 		cm.Version = &ntlm.VersionStruct{}
-	}
-
-	cm.TargetInfoPayloadStruct, err = ntlm.CreateBytePayload(cm.TargetInfo.Bytes())
-	if err != nil {
-		return nil, fmt.Errorf("marshal AVPairs with injected channel binding AVPair: %w", err)
 	}
 
 	return ntlmssp.ProcessChallengeWithHash(cm.Bytes(), username, hash)
