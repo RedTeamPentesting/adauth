@@ -33,7 +33,7 @@ type Credential struct {
 	// ClientCert holds a client certificate for Kerberos or LDAP authentication if available.
 	ClientCert *x509.Certificate
 	// ClientCertKey holds the private key that corresponds to ClientCert.
-	ClientCertKey *rsa.PrivateKey
+	ClientCertKey any
 	// CACerts holds CA certificates that were loaded alongside the ClientCert.
 	CACerts []*x509.Certificate
 	dc      string

@@ -58,7 +58,12 @@ func UnPACTheHashFromPFXData(
 		return nil, nil, fmt.Errorf("configure Kerberos: %w", err)
 	}
 
-	return UnPACTheHash(ctx, cred.Username, cred.Domain, cred.ClientCert, cred.ClientCertKey, krbConf, opts...)
+	rsaKey, ok := cred.ClientCertKey.(*rsa.PrivateKey)
+	if !ok {
+		return nil, nil, fmt.Errorf("cannot use %T because PKINIT requires an RSA key", cred.ClientCertKey)
+	}
+
+	return UnPACTheHash(ctx, cred.Username, cred.Domain, cred.ClientCert, rsaKey, krbConf, opts...)
 }
 
 // UnPACTheHash retrieves the user's NT hash via PKINIT using the provided

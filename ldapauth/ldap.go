@@ -425,8 +425,13 @@ func kerberosClient(
 	case creds.ClientCert != nil:
 		opts.Debug("authenticating using GSSAPI bind (PKINIT)")
 
+		rsaKey, ok := creds.ClientCertKey.(*rsa.PrivateKey)
+		if !ok {
+			return nil, fmt.Errorf("cannot use %T because PKINIT requires an RSA key", creds.ClientCertKey)
+		}
+
 		return newPKINITClient(ctx, creds.Username, strings.ToUpper(creds.Domain),
-			creds.ClientCert, creds.ClientCertKey, krbConf, opts.KerberosDialer)
+			creds.ClientCert, rsaKey, krbConf, opts.KerberosDialer)
 	case creds.CCache != "":
 		opts.Debug("authenticating using GSSAPI bind (ccache)")
 

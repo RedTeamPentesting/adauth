@@ -2,6 +2,7 @@ package dcerpcauth
 
 import (
 	"context"
+	"crypto/rsa"
 	"encoding/hex"
 	"fmt"
 	"net"
@@ -170,8 +171,13 @@ func DCERPCCredentials(ctx context.Context, creds *adauth.Credential, options *O
 			dialer = &net.Dialer{Timeout: pkinit.DefaultKerberosRoundtripDeadline}
 		}
 
+		rsaKey, ok := creds.ClientCertKey.(*rsa.PrivateKey)
+		if !ok {
+			return nil, fmt.Errorf("cannot use %T because PKINIT requires an RSA key", creds.ClientCertKey)
+		}
+
 		ccache, err := pkinit.Authenticate(ctx, creds.Username, strings.ToUpper(creds.Domain),
-			creds.ClientCert, creds.ClientCertKey, krbConf, pkinit.WithDialer(adauth.AsContextDialer(dialer)))
+			creds.ClientCert, rsaKey, krbConf, pkinit.WithDialer(adauth.AsContextDialer(dialer)))
 		if err != nil {
 			return nil, fmt.Errorf("PKINIT: %w", err)
 		}

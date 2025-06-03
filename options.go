@@ -2,8 +2,9 @@ package adauth
 
 import (
 	"context"
-	"crypto/rsa"
+	"crypto/x509"
 	"encoding/hex"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"net"
@@ -28,8 +29,15 @@ type Options struct {
 	CCache           string
 	DomainController string
 	ForceKerberos    bool
-	PFXFileName      string
-	PFXPassword      string
+
+	// It is possible to specify a cert/key pair directly, as PEM files or as a
+	// single PFX file.
+	Certificate     *x509.Certificate
+	CertificateKey  any
+	PFXFileName     string
+	PFXPassword     string
+	PEMCertFileName string
+	PEMKeyFileName  string
 
 	credential *Credential
 	flagset    *pflag.FlagSet
@@ -273,25 +281,31 @@ func (opts *Options) preliminaryCredential() (*Credential, error) {
 		Resolver:              opts.Resolver,
 	}
 
-	if opts.PFXFileName != "" {
-		pfxData, err := os.ReadFile(opts.PFXFileName)
+	switch {
+	case opts.Certificate != nil && opts.CertificateKey == nil:
+		return nil, fmt.Errorf("specify a key file for the client certificate")
+	case opts.Certificate != nil && opts.CertificateKey != nil:
+		cred.ClientCert = opts.Certificate
+		cred.ClientCertKey = opts.CertificateKey
+	case opts.PFXFileName != "":
+		cert, key, caCerts, err := readPFX(opts.PFXFileName, opts.PFXPassword)
 		if err != nil {
-			return nil, fmt.Errorf("read PFX: %w", err)
-		}
-
-		key, cert, caCerts, err := pkcs12.DecodeChain(pfxData, opts.PFXPassword)
-		if err != nil {
-			return nil, fmt.Errorf("decode PFX: %w", err)
-		}
-
-		rsaKey, ok := key.(*rsa.PrivateKey)
-		if !ok {
-			return nil, fmt.Errorf("PFX key is not an RSA private key but %T", rsaKey)
+			return nil, err
 		}
 
 		cred.ClientCert = cert
-		cred.ClientCertKey = rsaKey
+		cred.ClientCertKey = key
 		cred.CACerts = caCerts
+	case opts.PEMCertFileName != "" && opts.PEMKeyFileName == "":
+		return nil, fmt.Errorf("specify a key file for the client certificate")
+	case opts.PEMCertFileName != "" && opts.PEMKeyFileName != "":
+		cert, key, err := readPEMCertAndKey(opts.PEMCertFileName, opts.PEMKeyFileName)
+		if err != nil {
+			return nil, err
+		}
+
+		cred.ClientCert = cert
+		cred.ClientCertKey = key
 	}
 
 	//nolint:nestif
@@ -311,6 +325,67 @@ func (opts *Options) preliminaryCredential() (*Credential, error) {
 	opts.credential = cred
 
 	return cred, nil
+}
+
+func readPFX(fileName string, password string) (*x509.Certificate, any, []*x509.Certificate, error) {
+	pfxData, err := os.ReadFile(fileName)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("read PFX: %w", err)
+	}
+
+	key, cert, caCerts, err := pkcs12.DecodeChain(pfxData, password)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("decode PFX: %w", err)
+	}
+
+	return cert, key, caCerts, nil
+}
+
+func readPEMCertAndKey(certFileName string, certKeyFileName string) (*x509.Certificate, any, error) {
+	certData, err := os.ReadFile(certFileName)
+	if err != nil {
+		return nil, nil, fmt.Errorf("read cert file: %w", err)
+	}
+
+	block, _ := pem.Decode(certData)
+	if block == nil {
+		return nil, nil, fmt.Errorf("could not PEM-decode certificate")
+	}
+
+	if block.Type != "" && !strings.Contains(strings.ToLower(block.Type), "certificate") {
+		return nil, nil, fmt.Errorf("unexpected block type for certificate: %q", block.Type)
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, nil, fmt.Errorf("parse certificate: %w", err)
+	}
+
+	certKeyData, err := os.ReadFile(certKeyFileName)
+	if err != nil {
+		return nil, nil, fmt.Errorf("read cert key file: %w", err)
+	}
+
+	block, _ = pem.Decode(certKeyData)
+	if block == nil {
+		return nil, nil, fmt.Errorf("could not PEM-decode certificate key")
+	}
+
+	if block.Type != "" && !strings.Contains(strings.ToLower(block.Type), "key") {
+		return nil, nil, fmt.Errorf("unexpected block type for key: %q", block.Type)
+	}
+
+	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		key, pkcs1Err := x509.ParsePKCS1PrivateKey(block.Bytes)
+		if pkcs1Err == nil {
+			return cert, key, nil
+		}
+
+		return nil, nil, fmt.Errorf("parse private key: %w", err)
+	}
+
+	return cert, key, nil
 }
 
 // NewDebugFunc creates a debug output handler.
