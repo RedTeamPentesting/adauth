@@ -37,7 +37,7 @@ func (r *resolver) debug(format string, a ...any) {
 }
 
 func (r *resolver) LookupFirstService(ctx context.Context, protocol string, domain string) (string, int, error) {
-	_, addrs, err := r.Resolver.LookupSRV(ctx, protocol, "tcp", domain)
+	_, addrs, err := r.LookupSRV(ctx, protocol, "tcp", domain)
 	if err != nil {
 		if strings.EqualFold(protocol, "ldaps") {
 			host, _, srvLDAPErr := r.LookupFirstService(ctx, "ldap", domain)
