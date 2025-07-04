@@ -211,7 +211,8 @@ func (client *gssapiClient) InitSecContextWithOptions(
 
 			part := &messages.EncAPRepPart{}
 
-			if err = part.Unmarshal(encpart); err != nil {
+			err = part.Unmarshal(encpart)
+			if err != nil {
 				return nil, false, err
 			}
 
@@ -270,7 +271,8 @@ func (client *gssapiClient) NegotiateSaslAuth(input []byte, authzid string) ([]b
 		Payload:   payload,
 	}
 
-	if err := token.SetCheckSum(key, keyusage.GSSAPI_INITIATOR_SEAL); err != nil {
+	err = token.SetCheckSum(key, keyusage.GSSAPI_INITIATOR_SEAL)
+	if err != nil {
 		return nil, err
 	}
 
