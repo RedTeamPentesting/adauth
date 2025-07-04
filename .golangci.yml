@@ -1,14 +1,4 @@
 version: "2"
-formatters:
-  enable:
-    - gci
-    - gofmt
-    - gofumpt
-    - goimports
-    - golines
-  settings:
-    golines:
-      max-len: 120
 linters:
   default: none
   enable:
@@ -85,6 +75,9 @@ linters:
     - wsl
     - zerologlint
   settings:
+    lll:
+      line-length: 130
+      tab-width: 4
     godox:
       keywords:
         - FIXME # FIXME generates a linter warning
@@ -107,3 +100,17 @@ linters:
         - G402 # InsecureSkipVerify may be true
     gocyclo:
       min-complexity: 35
+formatters:
+  enable:
+    - gofmt
+    - golines
+    - goimports
+  settings:
+    golines:
+      max-len: 130
+      tab-len: 4
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
