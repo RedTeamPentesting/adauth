@@ -16,6 +16,8 @@ import (
 	"github.com/oiweiwei/go-msrpc/ssp/credential"
 	"github.com/oiweiwei/go-msrpc/ssp/gssapi"
 	"github.com/oiweiwei/go-msrpc/ssp/krb5"
+
+	"github.com/oiweiwei/gokrb5.fork/v9/credentials"
 	"github.com/oiweiwei/gokrb5.fork/v9/iana/etypeID"
 )
 
@@ -186,7 +188,12 @@ func DCERPCCredentials(ctx context.Context, creds *adauth.Credential, options *O
 	case creds.CCache != "":
 		options.debug("Authenticating with ccache")
 
-		return credential.NewFromPassword(creds.LogonNameWithUpperCaseDomain(), ""), nil
+		ccache, err := credentials.LoadCCache(creds.CCache)
+		if err != nil {
+			return nil, fmt.Errorf("load CCache: %w", err)
+		}
+
+		return credential.NewFromCCache(creds.LogonNameWithUpperCaseDomain(), ccache), nil
 	default:
 		return nil, fmt.Errorf("no credentials available")
 	}
