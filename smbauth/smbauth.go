@@ -74,10 +74,11 @@ func Dialer(
 			gssapi.WithTargetName(spn),
 			gssapi.WithCredential(smbCreds),
 			gssapi.WithMechanismFactory(ssp.KRB5, &krb5.Config{
-				KRB5Config:      krbConf,
-				CCachePath:      creds.CCache,
-				DisablePAFXFAST: true,
-				KDCDialer:       options.KerberosDialer,
+				KRB5Config:         krbConf,
+				CCachePath:         creds.CCache,
+				DisablePAFXFAST:    true,
+				KDCDialer:          options.KerberosDialer,
+				AnyServiceClassSPN: true,
 			}),
 		))
 

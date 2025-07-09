@@ -100,11 +100,12 @@ func AuthenticationOptions(
 			dcerpc.WithTargetName(spn),
 			dcerpc.WithMechanism(ssp.KRB5),
 			dcerpc.WithSecurityConfig(&krb5.Config{
-				KRB5Config:      krbConf,
-				CCachePath:      creds.CCache,
-				DisablePAFXFAST: true,
-				DCEStyle:        true,
-				KDCDialer:       upstreamOptions.KerberosDialer,
+				KRB5Config:         krbConf,
+				CCachePath:         creds.CCache,
+				DisablePAFXFAST:    true,
+				DCEStyle:           true,
+				KDCDialer:          upstreamOptions.KerberosDialer,
+				AnyServiceClassSPN: true,
 			}),
 			dcerpc.WithSMBDialer(smb2.NewDialer(smbOptions...)),
 		)
