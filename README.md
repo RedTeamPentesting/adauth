@@ -98,7 +98,9 @@ instead, even when an NT hash was used for pre-authentication . Unfortunately,
 behavior can be changed by adding
 `int(constants.EncryptionTypes.aes256_cts_hmac_sha1_96.value),` as the first
 element of [this
-list](https://github.com/fortra/impacket/blob/af91d617c382e1eb132506159debcbc10da7a567/impacket/krb5/kerberosv5.py#L447-L450).
+list](https://github.com/fortra/impacket/blob/af91d617c382e1eb132506159debcbc10da7a567/impacket/krb5/kerberosv5.py#L447-L450)
+and [this list for S4U
+tickets](https://github.com/fortra/impacket/blob/171a324d3a2a5c0987330ada447e3044bb5d9d84/examples/getST.py#L663-L670).
 
 The LDAP library does not (yet) support LDAP signing, but it supports channel
 binding for LDAPS and LDAP+StartTLS which is typically sufficient as a
