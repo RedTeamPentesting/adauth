@@ -191,11 +191,15 @@ func (c *Credential) KerberosConfig(ctx context.Context) (*config.Config, error)
 		krbConf.LibDefaults.PermittedEnctypeIDs = []int32{etypeID.AES256_CTS_HMAC_SHA1_96}
 		krbConf.LibDefaults.PreferredPreauthTypes = []int{int(etypeID.RC4_HMAC)}
 	} else {
-		krbConf.LibDefaults.DefaultTGSEnctypeIDs = []int32{etypeID.AES256_CTS_HMAC_SHA1_96}
+		krbConf.LibDefaults.DefaultTGSEnctypeIDs = []int32{
+			etypeID.AES256_CTS_HMAC_SHA1_96, etypeID.AES128_CTS_HMAC_SHA1_96, etypeID.RC4_HMAC,
+		}
 		krbConf.LibDefaults.DefaultTktEnctypeIDs = []int32{
 			etypeID.AES256_CTS_HMAC_SHA1_96, etypeID.AES128_CTS_HMAC_SHA1_96, etypeID.RC4_HMAC,
 		}
-		krbConf.LibDefaults.PermittedEnctypeIDs = []int32{etypeID.AES256_CTS_HMAC_SHA1_96}
+		krbConf.LibDefaults.PermittedEnctypeIDs = []int32{
+			etypeID.AES256_CTS_HMAC_SHA1_96, etypeID.AES128_CTS_HMAC_SHA1_96, etypeID.RC4_HMAC,
+		}
 		krbConf.LibDefaults.PreferredPreauthTypes = []int{
 			int(etypeID.AES256_CTS_HMAC_SHA1_96), int(etypeID.AES128_CTS_HMAC_SHA1_96), int(etypeID.RC4_HMAC),
 		}
