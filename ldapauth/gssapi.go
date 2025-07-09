@@ -107,23 +107,57 @@ func (client *gssapiClient) DeleteSecContext() error {
 }
 
 func (client *gssapiClient) getServiceTicket(target string) (tkt messages.Ticket, key types.EncryptionKey, err error) {
-	// ask our own copy of the ccache for a suitable service ticket before asking the client
-	if client.ccache != nil {
-		entry, ok := client.ccache.GetEntry(types.NewPrincipalName(nametype.KRB_NT_SRV_INST, target))
-		if !ok {
-			return tkt, key, fmt.Errorf("CCACHE does not contain service ticket for %q", target)
-		}
-
-		if entry.Key.KeyType == etypeID.RC4_HMAC {
-			return tkt, key, fmt.Errorf("RC4 tickets from ccache are currently not supported " +
-				"(see https://github.com/jcmturner/gokrb5/pull/498), but you should be able " +
-				"to request an AES256 ticket instead (even with NT hash)")
-		}
-
-		return tkt, entry.Key, tkt.Unmarshal(entry.Ticket)
+	if client.ccache == nil {
+		return client.GetServiceTicket(target)
 	}
 
-	return client.GetServiceTicket(target)
+	// ask our own copy of the ccache for a suitable service ticket before asking the client
+	entry, ok := client.ccache.GetEntry(types.NewPrincipalName(nametype.KRB_NT_SRV_INST, target))
+	if !ok {
+		// check for tickets with same host but alternative protocol
+		for _, cred := range client.ccache.GetEntries() {
+			if sameHost(cred.Server.PrincipalName, target) {
+				entry = cred
+
+				break
+			}
+		}
+	}
+
+	if entry == nil {
+		return tkt, key, fmt.Errorf("CCache does not contain service ticket for %q", target)
+	}
+
+	if entry.Key.KeyType == etypeID.RC4_HMAC {
+		return tkt, key, fmt.Errorf("RC4 tickets from ccache are currently not supported " +
+			"(see https://github.com/jcmturner/gokrb5/pull/498), but you should be able " +
+			"to request an AES256 ticket instead (even with NT hash)")
+	}
+
+	return tkt, entry.Key, tkt.Unmarshal(entry.Ticket)
+}
+
+func sameHost(firstSPN types.PrincipalName, otherSPNString string) bool {
+	if len(firstSPN.NameString) < 2 || !strings.Contains(otherSPNString, "/") {
+		return false
+	}
+
+	firstHost := strings.ToLower(strings.Join(firstSPN.NameString[1:], "."))
+	secondHost := strings.ToLower(strings.Split(otherSPNString, "/")[1])
+
+	if firstHost == secondHost {
+		return true
+	}
+
+	if !strings.Contains(firstHost, ".") && strings.HasPrefix(secondHost, firstHost+".") {
+		return true
+	}
+
+	if !strings.Contains(secondHost, ".") && strings.HasPrefix(firstHost, secondHost+".") {
+		return true
+	}
+
+	return false
 }
 
 func (client *gssapiClient) newKRB5TokenAPREQ(
