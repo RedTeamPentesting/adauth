@@ -37,6 +37,9 @@ type Options struct {
 	// Debug can be set to enable debug output, for example with
 	// adauth.NewDebugFunc(...).
 	Debug func(string, ...any)
+
+	// Use raw NTLM and Kerberos instead of wrapping it in SPNEGO.
+	DisableSPNEGO bool
 }
 
 func (opts *Options) debug(format string, a ...any) {
@@ -63,7 +66,9 @@ func AuthenticationOptions(
 		return nil, err
 	}
 
-	dcerpcOptions = append(dcerpcOptions, dcerpc.WithMechanism(ssp.SPNEGO))
+	if !upstreamOptions.DisableSPNEGO {
+		dcerpcOptions = append(dcerpcOptions, dcerpc.WithMechanism(ssp.SPNEGO))
+	}
 
 	switch {
 	case target.UseKerberos || creds.ClientCert != nil:
