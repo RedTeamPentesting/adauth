@@ -130,11 +130,11 @@ func (opts *Options) WithDCTarget(ctx context.Context, protocol string) (*Creden
 
 	var dcAddr string
 
-	host, port, err := resolver.LookupFirstService(context.Background(), protocol, cred.Domain)
+	host, port, err := resolver.LookupFirstService(ctx, protocol, cred.Domain)
 	if err != nil {
 		lookupSRVErr := fmt.Errorf("could not lookup %q service of domain %q: %w", protocol, cred.Domain, err)
 
-		dcAddr, err = resolver.LookupDCByDomain(context.Background(), cred.Domain)
+		dcAddr, err = resolver.LookupDCByDomain(ctx, cred.Domain)
 		if err != nil {
 			return nil, nil, fmt.Errorf("could not find DC: %w and %w", lookupSRVErr, err)
 		}
