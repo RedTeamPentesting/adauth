@@ -1,11 +1,11 @@
-package othername_test
+package x509ext_test
 
 import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"testing"
 
-	"github.com/RedTeamPentesting/adauth/othername"
+	"github.com/RedTeamPentesting/adauth/x509ext"
 )
 
 func TestOtherName(t *testing.T) {
@@ -13,7 +13,7 @@ func TestOtherName(t *testing.T) {
 
 	names := []string{"a", "b", "c"}
 
-	ext, err := othername.ExtensionFromUPNs(names...)
+	ext, err := x509ext.NewOtherNameExtensionFromUPNs(names...)
 	if err != nil {
 		t.Fatalf("generate otherName extension: %v", err)
 	}
@@ -22,7 +22,7 @@ func TestOtherName(t *testing.T) {
 		ExtraExtensions: []pkix.Extension{ext},
 	}
 
-	parsedNames, err := othername.UPNs(cert)
+	parsedNames, err := x509ext.UPNsFromOtherNames(cert)
 	if err != nil {
 		t.Fatalf("parse otherNames: %v", err)
 	}

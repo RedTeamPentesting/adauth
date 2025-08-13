@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/RedTeamPentesting/adauth/othername"
+	"github.com/RedTeamPentesting/adauth/x509ext"
 	"github.com/spf13/pflag"
 	"software.sslmate.com/src/go-pkcs12"
 )
@@ -310,7 +310,7 @@ func (opts *Options) preliminaryCredential() (*Credential, error) {
 
 	//nolint:nestif
 	if cred.ClientCert != nil {
-		user, domain, err := othername.UserAndDomain(cred.ClientCert)
+		user, domain, err := x509ext.UserAndDomainFromOtherNames(cred.ClientCert)
 		if err == nil {
 			if cred.Username == "" {
 				cred.Username = user

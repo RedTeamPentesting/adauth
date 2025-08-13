@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RedTeamPentesting/adauth/othername"
+	"github.com/RedTeamPentesting/adauth/x509ext"
 	"github.com/jcmturner/gokrb5/v8/config"
 	"github.com/jcmturner/gokrb5/v8/iana/etypeID"
 	"software.sslmate.com/src/go-pkcs12"
@@ -87,7 +87,7 @@ func CredentialFromPFXBytes(
 	cred.ClientCertKey = rsaKey
 	cred.CACerts = caCerts
 
-	user, domain, err := othername.UserAndDomain(cert)
+	user, domain, err := x509ext.UserAndDomainFromOtherNames(cert)
 	if err == nil {
 		if cred.Username == "" {
 			cred.Username = user

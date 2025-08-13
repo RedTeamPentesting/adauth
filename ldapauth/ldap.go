@@ -21,8 +21,8 @@ import (
 
 	"github.com/RedTeamPentesting/adauth"
 	"github.com/RedTeamPentesting/adauth/compat"
-	"github.com/RedTeamPentesting/adauth/othername"
 	"github.com/RedTeamPentesting/adauth/pkinit"
+	"github.com/RedTeamPentesting/adauth/x509ext"
 	"github.com/go-ldap/ldap/v3"
 	"github.com/oiweiwei/gokrb5.fork/v9/client"
 	"github.com/oiweiwei/gokrb5.fork/v9/iana/etypeID"
@@ -536,7 +536,7 @@ func UserAndDomainFromPFX(pfxFile string, password string) (user string, domain 
 }
 
 func userAndDomainFromCert(cert *x509.Certificate) (user string, domain string) {
-	upns, err := othername.UPNs(cert)
+	upns, err := x509ext.UPNsFromOtherNames(cert)
 	if err != nil {
 		return "", ""
 	}

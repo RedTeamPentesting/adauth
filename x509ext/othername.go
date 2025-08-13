@@ -1,5 +1,5 @@
 // Package othername is a minimal and incomplete implementation of the otherName SAN extension.
-package othername
+package x509ext
 
 import (
 	"crypto/x509"
@@ -10,19 +10,21 @@ import (
 )
 
 var (
-	UPNOID = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 311, 20, 2, 3}
-	SANOID = asn1.ObjectIdentifier{2, 5, 29, 17}
+	UPNOID                    = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 311, 20, 2, 3}
+	SubjectAlternativeNameOID = asn1.ObjectIdentifier{2, 5, 29, 17}
 )
 
+// OtherName holds an other name such as an UPN from or for a Subject
+// Alternative Name extension.
 type OtherName struct {
 	ID    asn1.ObjectIdentifier
 	Value asn1.RawValue
 }
 
-// Extension generates an otherName extension.
-func Extension(names ...*OtherName) (pkix.Extension, error) {
+// NewOtherNameExtension generates an otherName extension.
+func NewOtherNameExtension(names ...*OtherName) (pkix.Extension, error) {
 	ext := pkix.Extension{
-		Id:       SANOID,
+		Id:       SubjectAlternativeNameOID,
 		Critical: false,
 	}
 
@@ -61,8 +63,8 @@ func Extension(names ...*OtherName) (pkix.Extension, error) {
 	return ext, nil
 }
 
-// ExtensionFromUPNs build an otherName extension based on the provided UPNs.
-func ExtensionFromUPNs(upns ...string) (ext pkix.Extension, err error) {
+// NewOtherNameExtensionFromUPNs build an otherName extension based on the provided UPNs.
+func NewOtherNameExtensionFromUPNs(upns ...string) (ext pkix.Extension, err error) {
 	otherNames := make([]*OtherName, 0, len(upns))
 
 	for _, upn := range upns {
@@ -81,23 +83,21 @@ func ExtensionFromUPNs(upns ...string) (ext pkix.Extension, err error) {
 		})
 	}
 
-	return Extension(otherNames...)
+	return NewOtherNameExtension(otherNames...)
 }
 
-// Names returns the names from the otherName extension of the provided
+// OtherNames returns the names from the otherName extension of the provided
 // certificate. If it does not contain such an extension, it will return an
 // empty slice and no error.
-func Names(cert *x509.Certificate) ([]*OtherName, error) {
-	oidSubjectAltName := asn1.ObjectIdentifier{2, 5, 29, 17}
-
+func OtherNames(cert *x509.Certificate) ([]*OtherName, error) {
 	var otherNames []*OtherName
 
 	for _, extension := range append(cert.Extensions, cert.ExtraExtensions...) {
-		if !extension.Id.Equal(oidSubjectAltName) {
+		if !extension.Id.Equal(SubjectAlternativeNameOID) {
 			continue
 		}
 
-		ons, err := otherNamesFromSANBytes(extension.Value)
+		ons, err := OtherNamesFromExtension(extension)
 		if err != nil {
 			return nil, fmt.Errorf("parse otherName data: %w", err)
 		}
@@ -108,53 +108,16 @@ func Names(cert *x509.Certificate) ([]*OtherName, error) {
 	return otherNames, nil
 }
 
-// UPNs returns all UPNs that are stored in certificates otherName extension.
-func UPNs(cert *x509.Certificate) (upns []string, err error) {
-	otherNames, err := Names(cert)
-	if err != nil {
-		return nil, err
+// OtherNames returns the names from the otherName SAN extension.
+func OtherNamesFromExtension(ext pkix.Extension) ([]*OtherName, error) {
+	if ext.Id.Equal(SubjectAlternativeNameOID) {
+		return nil, fmt.Errorf("extension is %s instead of Subject Alternative Name (%s)",
+			ext.Id, SubjectAlternativeNameOID)
 	}
 
-	for _, otherName := range otherNames {
-		if !otherName.ID.Equal(UPNOID) {
-			continue
-		}
-
-		var upn string
-
-		_, err = asn1.UnmarshalWithParams(otherName.Value.Bytes, &upn, "utf8")
-		if err != nil {
-			return nil, fmt.Errorf("unmarshal name: %w", err)
-		}
-
-		upns = append(upns, upn)
-	}
-
-	return upns, nil
-}
-
-// UserAndDomain returns the user and domain from the first valid UPN in the
-// certificate's otherName extension.
-func UserAndDomain(cert *x509.Certificate) (user string, domain string, err error) {
-	upns, err := UPNs(cert)
-	if err != nil {
-		return "", "", err
-	}
-
-	for _, upn := range upns {
-		parts := strings.Split(upn, "@")
-		if len(parts) == 2 {
-			return parts[0], parts[1], nil
-		}
-	}
-
-	return "", "", fmt.Errorf("found no suitable UPN in certificate")
-}
-
-func otherNamesFromSANBytes(bytes []byte) ([]*OtherName, error) {
 	values := []asn1.RawValue{}
 
-	_, err := asn1.Unmarshal(bytes, &values)
+	_, err := asn1.Unmarshal(ext.Value, &values)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal raw values: %w", err)
 	}
@@ -186,4 +149,48 @@ func otherNamesFromSANBytes(bytes []byte) ([]*OtherName, error) {
 	}
 
 	return otherNames, nil
+}
+
+// UPNsFromOtherNames returns all UPNsFromOtherNames that are stored in
+// certificates otherName extension.
+func UPNsFromOtherNames(cert *x509.Certificate) (upns []string, err error) {
+	otherNames, err := OtherNames(cert)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, otherName := range otherNames {
+		if !otherName.ID.Equal(UPNOID) {
+			continue
+		}
+
+		var upn string
+
+		_, err = asn1.UnmarshalWithParams(otherName.Value.Bytes, &upn, "utf8")
+		if err != nil {
+			return nil, fmt.Errorf("unmarshal name: %w", err)
+		}
+
+		upns = append(upns, upn)
+	}
+
+	return upns, nil
+}
+
+// UserAndDomainFromOtherNames returns the user and domain from the first valid
+// UPN in the certificate's otherName extension.
+func UserAndDomainFromOtherNames(cert *x509.Certificate) (user string, domain string, err error) {
+	upns, err := UPNsFromOtherNames(cert)
+	if err != nil {
+		return "", "", err
+	}
+
+	for _, upn := range upns {
+		parts := strings.Split(upn, "@")
+		if len(parts) == 2 {
+			return parts[0], parts[1], nil
+		}
+	}
+
+	return "", "", fmt.Errorf("found no suitable UPN in certificate")
 }
