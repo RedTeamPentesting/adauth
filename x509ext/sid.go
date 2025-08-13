@@ -53,8 +53,8 @@ func NewNTDSCaSecurityExt(sid string) (ext pkix.Extension, err error) {
 	return ext, nil
 }
 
-// SID retrieves the SID from the szOID_NTDS_CA_SECURITY_EXT extension of the
-// certificate if it is present and returns an error otherwise.
+// SID retrieves the SID from the szOID_NTDS_CA_SECURITY_EXT extension and an
+// empty string with no error when the extension is not present.
 func SID(cert *x509.Certificate) (string, error) {
 	for _, extension := range append(cert.Extensions, cert.ExtraExtensions...) {
 		if !extension.Id.Equal(NTDSCASecurityExtOID) {
@@ -64,7 +64,7 @@ func SID(cert *x509.Certificate) (string, error) {
 		return SIDFromExtension(extension)
 	}
 
-	return "", fmt.Errorf("certificate has no NTDS_CA_SECURITY_EXT extension")
+	return "", nil
 }
 
 // SID retrieves the SID from the szOID_NTDS_CA_SECURITY_EXT extension.
