@@ -58,7 +58,7 @@ func ConfigureASReq(
 		},
 		ClientPublicValue: SubjectPublicKeyInfo{
 			Algorithm: AlgorithmIdentifier{
-				Algorithm: asn1.ObjectIdentifier{1, 2, 840, 10046, 2, 1},
+				Algorithm: ephemeralStaticDiffieHellmanKeyAgreementAlgorithmOID,
 				Parameters: DomainParameters{
 					P: DiffieHellmanPrime,
 					G: 2,

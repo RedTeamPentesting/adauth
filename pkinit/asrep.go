@@ -63,7 +63,7 @@ func ExtractNegotiatedKey(
 		return ekey, fmt.Errorf("unmarshal signed data: %w", err)
 	}
 
-	if !contentInfo.ContentType.Equal(asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 2}) {
+	if !contentInfo.ContentType.Equal(signedDataOID) {
 		return ekey, fmt.Errorf("unexpected outer content type: %s", contentInfo.ContentType)
 	}
 
@@ -74,7 +74,7 @@ func ExtractNegotiatedKey(
 		return ekey, fmt.Errorf("unmarshal signed data: %w", err)
 	}
 
-	if !signedData.ContentInfo.ContentType.Equal(asn1.ObjectIdentifier{1, 3, 6, 1, 5, 2, 3, 2}) {
+	if !signedData.ContentInfo.ContentType.Equal(idPKINITDHKeyDataOID) {
 		return ekey, fmt.Errorf("unexpected inner content type: %s", signedData.ContentInfo.ContentType)
 	}
 

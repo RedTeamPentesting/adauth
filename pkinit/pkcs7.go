@@ -29,29 +29,29 @@ func PKCS7Sign(data []byte, key *rsa.PrivateKey, cert *x509.Certificate) ([]byte
 		return nil, fmt.Errorf("marshal digest: %w", err)
 	}
 
-	serializedPKInitOID, err := asn1.Marshal(asn1.ObjectIdentifier{1, 3, 6, 1, 5, 2, 3, 1})
+	serializedPKInitOID, err := asn1.Marshal(idPKINITAuthDataOID)
 	if err != nil {
 		return nil, fmt.Errorf("marshal PKInit OID: %w", err)
 	}
 
 	sha1AlgorithmIdentifier := pkix.AlgorithmIdentifier{
-		Algorithm: asn1.ObjectIdentifier{1, 3, 14, 3, 2, 26},
+		Algorithm: sha1HashOID,
 	}
 
 	rsaWithSHA1AlgorithmIdentifier := pkix.AlgorithmIdentifier{
-		Algorithm: asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 5},
+		Algorithm: sha1WithRSAEncryptionOID,
 	}
 
 	authenticatedAttributes := []Attribute{
 		{
 			// ContentType
-			Type: asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 3},
+			Type: contentTypeOID,
 			// id-pkinit-authData
 			Value: asn1.RawValue{Tag: 17, IsCompound: true, Bytes: serializedPKInitOID},
 		},
 		{
 			// MessageDigest
-			Type:  asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 4},
+			Type:  messageDigestOID,
 			Value: asn1.RawValue{Tag: 17, IsCompound: true, Bytes: serializedDigest},
 		},
 	}
@@ -66,7 +66,7 @@ func PKCS7Sign(data []byte, key *rsa.PrivateKey, cert *x509.Certificate) ([]byte
 		DigestAlgorithmIdentifiers: []pkix.AlgorithmIdentifier{sha1AlgorithmIdentifier},
 		ContentInfo: ContentInfo{
 			// id-pkinit-authData
-			ContentType: asn1.ObjectIdentifier{1, 3, 6, 1, 5, 2, 3, 1},
+			ContentType: idPKINITAuthDataOID,
 			Content:     asn1.RawValue{Class: 2, Tag: 0, Bytes: serializedData, IsCompound: true},
 		},
 		Certificates: rawCert,
@@ -90,7 +90,7 @@ func PKCS7Sign(data []byte, key *rsa.PrivateKey, cert *x509.Certificate) ([]byte
 
 	contentInfo := ContentInfo{
 		// signed data
-		ContentType: asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 2},
+		ContentType: signedDataOID,
 		Content:     asn1.RawValue{Class: 2, Tag: 0, Bytes: signedDataBytes, IsCompound: true},
 	}
 

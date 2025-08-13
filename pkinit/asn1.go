@@ -11,6 +11,17 @@ import (
 	"github.com/jcmturner/gokrb5/v8/types"
 )
 
+var (
+	signedDataOID                                        = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 2}
+	idPKINITAuthDataOID                                  = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 2, 3, 1}
+	idPKINITDHKeyDataOID                                 = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 2, 3, 2}
+	sha1HashOID                                          = asn1.ObjectIdentifier{1, 3, 14, 3, 2, 26}
+	sha1WithRSAEncryptionOID                             = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 5}
+	contentTypeOID                                       = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 3}
+	ephemeralStaticDiffieHellmanKeyAgreementAlgorithmOID = asn1.ObjectIdentifier{1, 2, 840, 10046, 2, 1}
+	messageDigestOID                                     = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 4}
+)
+
 type SignerInfo struct {
 	Version                   int `asn1:"default:1"`
 	IssuerAndSerialNumber     IssuerAndSerial
