@@ -110,7 +110,7 @@ func OtherNames(cert *x509.Certificate) ([]*OtherName, error) {
 
 // OtherNames returns the names from the otherName SAN extension.
 func OtherNamesFromExtension(ext pkix.Extension) ([]*OtherName, error) {
-	if ext.Id.Equal(SubjectAlternativeNameOID) {
+	if !ext.Id.Equal(SubjectAlternativeNameOID) {
 		return nil, fmt.Errorf("extension is %s instead of Subject Alternative Name (%s)",
 			ext.Id, SubjectAlternativeNameOID)
 	}
