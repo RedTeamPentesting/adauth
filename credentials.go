@@ -1,7 +1,10 @@
 package adauth
 
 import (
+	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
@@ -73,7 +76,7 @@ func CredentialFromPFXBytes(
 		Domain:   domain,
 	}
 
-	key, cert, caCerts, err := pkcs12.DecodeChain(pfxData, pfxPassword)
+	key, cert, caCerts, err := DecodePFX(pfxData, pfxPassword)
 	if err != nil {
 		return nil, fmt.Errorf("decode PFX: %w", err)
 	}
@@ -256,5 +259,78 @@ func splitUserIntoDomainAndUsername(user string) (domain string, username string
 		return "", user
 	default:
 		return "", user
+	}
+}
+
+// DecodePFX loads the private key, certificate and certificate chain from PFX
+// bytes that may or may not be protected by a password.
+func DecodePFX(pfxData []byte, password string) (privateKey any, cert *x509.Certificate, chain []*x509.Certificate, err error) {
+	// In some PFXs, especially those create by Microsoft tools, the cert and
+	// chain order is reversed such that pkcs12.DecodeChain returns the CA cert
+	// as "cert" and the leaf certificate in the chain (see
+	// https://github.com/SSLMate/go-pkcs12/issues/54). Our strategy is that we
+	// swap certifiates such that "cert" is the certificate that belongs to the
+	// private key and "chain" contains all other certificates.
+	privateKey, cert, chain, err = pkcs12.DecodeChain(pfxData, password)
+	if err != nil || certMatchesKey(privateKey, cert) {
+		return privateKey, cert, chain, err
+	}
+
+	for i := range chain {
+		if !certMatchesKey(privateKey, chain[i]) {
+			continue
+		}
+
+		newCert := chain[i]
+		chain[i] = cert
+
+		return privateKey, newCert, chain, nil
+	}
+
+	return privateKey, cert, chain, fmt.Errorf("private key does not match any of the %d certificates in PFX", len(chain)+1)
+}
+
+func certMatchesKey(key any, cert *x509.Certificate) bool {
+	switch pub := cert.PublicKey.(type) {
+	case *rsa.PublicKey:
+		priv, ok := key.(*rsa.PrivateKey)
+		if !ok {
+			return false
+		}
+
+		if pub.N.Cmp(priv.N) != 0 {
+			return false
+		}
+
+		return true
+	case *ecdsa.PublicKey:
+		priv, ok := key.(*ecdsa.PrivateKey)
+		if !ok {
+			return false
+		}
+
+		if pub.X.Cmp(priv.X) != 0 || pub.Y.Cmp(priv.Y) != 0 {
+			return false
+		}
+
+		return true
+	case ed25519.PublicKey:
+		priv, ok := key.(ed25519.PrivateKey)
+		if !ok {
+			return false
+		}
+
+		privPublicKey, ok := priv.Public().(ed25519.PublicKey)
+		if !ok {
+			return false
+		}
+
+		if !bytes.Equal(privPublicKey, pub) {
+			return false
+		}
+
+		return true
+	default:
+		return false
 	}
 }

@@ -29,7 +29,6 @@ import (
 	"github.com/oiweiwei/gokrb5.fork/v9/iana/flags"
 	"github.com/oiweiwei/gokrb5.fork/v9/types"
 	"github.com/spf13/pflag"
-	"software.sslmate.com/src/go-pkcs12"
 )
 
 // Options holds LDAP specific options.
@@ -161,7 +160,7 @@ func connect(ctx context.Context, target *adauth.Target, opts *Options) (conn *l
 
 			tlsConn := tls.Client(tcpConn, opts.TLSConfig)
 
-			err = tlsConn.Handshake()
+			err = tlsConn.HandshakeContext(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -525,7 +524,7 @@ func UserAndDomainFromPFX(pfxFile string, password string) (user string, domain 
 		return "", "", fmt.Errorf("read PFX: %w", err)
 	}
 
-	_, cert, _, err := pkcs12.DecodeChain(pfxData, password)
+	_, cert, _, err := adauth.DecodePFX(pfxData, password)
 	if err != nil {
 		return "", "", fmt.Errorf("decode PFX: %w", err)
 	}

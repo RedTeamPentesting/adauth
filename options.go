@@ -14,7 +14,6 @@ import (
 
 	"github.com/RedTeamPentesting/adauth/x509ext"
 	"github.com/spf13/pflag"
-	"software.sslmate.com/src/go-pkcs12"
 )
 
 // Options holds command line options that are used to determine authentication
@@ -333,7 +332,7 @@ func readPFX(fileName string, password string) (*x509.Certificate, any, []*x509.
 		return nil, nil, nil, fmt.Errorf("read PFX: %w", err)
 	}
 
-	key, cert, caCerts, err := pkcs12.DecodeChain(pfxData, password)
+	key, cert, caCerts, err := DecodePFX(pfxData, password)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("decode PFX: %w", err)
 	}
