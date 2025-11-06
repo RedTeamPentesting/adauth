@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/RedTeamPentesting/adauth"
 	"github.com/RedTeamPentesting/adauth/pkinit"
@@ -192,15 +193,58 @@ func DCERPCCredentials(ctx context.Context, creds *adauth.Credential, options *O
 
 		return credential.NewFromCCache(creds.LogonNameWithUpperCaseDomain(), ccache), nil
 	case creds.CCache != "":
-		options.debug("Authenticating with ccache")
+		options.debug("Authenticating with CCache")
 
 		ccache, err := credentials.LoadCCache(creds.CCache)
 		if err != nil {
 			return nil, fmt.Errorf("load CCache: %w", err)
 		}
 
+		describeCCache(ccache, options.debug)
+
 		return credential.NewFromCCache(creds.LogonNameWithUpperCaseDomain(), ccache), nil
 	default:
 		return nil, fmt.Errorf("no credentials available")
 	}
+}
+
+func describeCCache(cchache *credentials.CCache, log func(string, ...any)) {
+	tickets := cchache.GetEntries()
+
+	log("CCache contains %d tickets:", len(tickets))
+
+	now := time.Now()
+
+	for _, ticket := range tickets {
+		ticketType := "Service Ticket"
+		if len(ticket.Server.PrincipalName.NameString) > 0 &&
+			strings.EqualFold(ticket.Server.PrincipalName.NameString[0], "krbtgt") {
+			ticketType = "Ticket Granting Ticket"
+		}
+
+		log(
+			"  * %s: User=%s (%s), Target=%s (%s), Start=%s, End=%s, Renew=%s, Auth=%s, KeyType=%d",
+			ticketType,
+			strings.Join(ticket.Client.PrincipalName.NameString, "/"),
+			ticket.Client.Realm,
+			strings.Join(ticket.Server.PrincipalName.NameString, "/"),
+			ticket.Server.Realm,
+			formatTime(ticket.StartTime, now),
+			formatTime(ticket.EndTime, now),
+			formatTime(ticket.RenewTill, now),
+			formatTime(ticket.AuthTime, now),
+			ticket.Key.KeyType,
+		)
+	}
+}
+
+func formatTime(t time.Time, now time.Time) string {
+	ty, tm, td := t.Date()
+	ny, nm, nd := now.Date()
+
+	if ty == ny && tm == nm && td == nd {
+		return t.Format(time.TimeOnly)
+	}
+
+	return t.Format(time.DateTime)
 }
