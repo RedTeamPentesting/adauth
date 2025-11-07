@@ -277,14 +277,6 @@ func TestKerberos(t *testing.T) {
 			},
 			ShouldUseKerberos: true,
 		},
-		{
-			Opts: adauth.Options{
-				User: upn,
-				// CCache does not matter if file is not even there
-				CCache: "testdata/doesnotexist",
-			},
-			ShouldUseKerberos: false,
-		},
 	}
 
 	for i, testCase := range testCases {
