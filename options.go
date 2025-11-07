@@ -262,9 +262,13 @@ func (opts *Options) preliminaryCredential() (*Credential, error) {
 
 	if opts.CCache != "" {
 		s, err := os.Stat(opts.CCache)
-		if err == nil && !s.IsDir() {
-			ccache = opts.CCache
+		if err != nil {
+			return nil, fmt.Errorf("stat CCache path: %w", err)
+		} else if s.IsDir() {
+			return nil, fmt.Errorf("CCache path is a directory: %s", opts.CCache)
 		}
+
+		ccache = opts.CCache
 	}
 
 	cred := &Credential{
