@@ -59,9 +59,9 @@ func run() error {
 		epm.EndpointMapper(ctx,
 			net.JoinHostPort(target.AddressWithoutPort(), "135"),
 			dcerpc.WithInsecure(),
+			dcerpc.WithDialer(dialer),
 		),
 		dcerpc.WithDialer(dialer),
-		dcerpc.WithDialer(adauth.DialerWithSOCKS5ProxyIfSet(socksServer, nil)),
 	)
 
 	proto := "ncacn_ip_tcp:"
