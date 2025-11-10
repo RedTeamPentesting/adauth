@@ -39,7 +39,9 @@ func run() error {
 		return fmt.Errorf("usage: %s [options] <target>", binaryName())
 	}
 
-	dcerpcauthOpts.KerberosDialer = adauth.DialerWithSOCKS5ProxyIfSet(socksServer, nil)
+	dialer := adauth.DialerWithSOCKS5ProxyIfSet(socksServer, nil)
+
+	dcerpcauthOpts.KerberosDialer = dialer
 
 	creds, target, err := authOpts.WithTarget(context.Background(), "host", pflag.Arg(0))
 	if err != nil {
@@ -58,6 +60,7 @@ func run() error {
 			net.JoinHostPort(target.AddressWithoutPort(), "135"),
 			dcerpc.WithInsecure(),
 		),
+		dcerpc.WithDialer(dialer),
 		dcerpc.WithDialer(adauth.DialerWithSOCKS5ProxyIfSet(socksServer, nil)),
 	)
 
