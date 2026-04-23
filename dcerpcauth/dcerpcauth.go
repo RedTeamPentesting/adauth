@@ -163,10 +163,14 @@ func DCERPCCredentials(ctx context.Context, creds *adauth.Credential, options *O
 		options.debug("Authenticating with NT hash")
 
 		return credential.NewFromNTHash(creds.LogonNameWithUpperCaseDomain(), creds.NTHash), nil
-	case creds.PasswordIsEmtpyString:
+	case creds.PasswordIsEmptyString:
 		options.debug("Authenticating with empty password")
 
-		return credential.NewFromPassword(strings.ToUpper(creds.Domain)+`\`+creds.Username, ""), nil
+		return credential.NewFromPassword(
+			strings.ToUpper(creds.Domain)+`\`+creds.Username,
+			"",
+			credential.AllowEmptyPassword(),
+		), nil
 	case creds.ClientCert != nil:
 		options.debug("Authenticating with client certificate (PKINIT)")
 

@@ -162,6 +162,8 @@ func connect(ctx context.Context, target *adauth.Target, opts *Options) (conn *l
 
 			err = tlsConn.HandshakeContext(ctx)
 			if err != nil {
+				_ = tcpConn.Close()
+
 				return nil, err
 			}
 
@@ -217,9 +219,9 @@ func bind(
 	switch {
 	case opts.SimpleBind:
 		switch {
-		case creds.Password == "" && !creds.PasswordIsEmtpyString:
+		case creds.Password == "" && !creds.PasswordIsEmptyString:
 			return fmt.Errorf("specify a password for simple bind or -p '' for an unauthenticated simple bind")
-		case creds.Password == "" && creds.PasswordIsEmtpyString:
+		case creds.Password == "" && creds.PasswordIsEmptyString:
 			opts.Debug("using unauthenticated simple bind")
 		default:
 			opts.Debug("authenticating with simple bind")
@@ -228,7 +230,7 @@ func bind(
 		_, err = conn.SimpleBind(&ldap.SimpleBindRequest{
 			Username:           creds.UPN(),
 			Password:           creds.Password,
-			AllowEmptyPassword: creds.PasswordIsEmtpyString,
+			AllowEmptyPassword: creds.PasswordIsEmptyString,
 		})
 		if err != nil {
 			return fmt.Errorf("simple bind: %w", err)
@@ -236,7 +238,7 @@ func bind(
 	case !target.UseKerberos && creds.ClientCert == nil:
 		opts.Debug("authenticating using NTLM bind")
 
-		if !creds.PasswordIsEmtpyString && (creds.Password == "" && creds.NTHash == "") {
+		if !creds.PasswordIsEmptyString && (creds.Password == "" && creds.NTHash == "") {
 			return fmt.Errorf("no credentials available for NTLM")
 		}
 
@@ -245,7 +247,7 @@ func bind(
 			Username:           creds.Username,
 			Password:           creds.Password,
 			Hash:               creds.NTHash,
-			AllowEmptyPassword: creds.PasswordIsEmtpyString,
+			AllowEmptyPassword: creds.PasswordIsEmptyString,
 		}
 
 		tlsState, ok := conn.TLSConnectionState()
@@ -347,7 +349,7 @@ func kerberosClient(
 	}
 
 	switch {
-	case creds.Password != "" || creds.PasswordIsEmtpyString:
+	case creds.Password != "" || creds.PasswordIsEmptyString:
 		opts.Debug("authenticating using GSSAPI bind (password)")
 
 		authClient = &gssapiClient{

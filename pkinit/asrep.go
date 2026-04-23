@@ -85,13 +85,13 @@ func ExtractNegotiatedKey(
 		return ekey, fmt.Errorf("unmarshal key info: %w", err)
 	}
 
-	if len(keyInfo.SubjectPublicKey.Bytes) < 7 {
-		return ekey, fmt.Errorf("public key is too short")
-	}
-
 	pubkeyData, err := asn1.Marshal(keyInfo.SubjectPublicKey)
 	if err != nil {
 		return ekey, fmt.Errorf("marshal public key: %w", err)
+	}
+
+	if len(pubkeyData) < 7 {
+		return ekey, fmt.Errorf("public key is too short")
 	}
 
 	pubKey := big.NewInt(0)

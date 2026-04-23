@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	// DiffieHellmanPrime is the Diffie Hellman prime (P) that is acccepted by PKINIT.
+	// DiffieHellmanPrime is the Diffie Hellman prime (P) that is accepted by PKINIT.
 	DiffieHellmanPrime = big.NewInt(0)
-	// DiffieHellmanPrime is the Diffie Hellman base (G) that is acccepted by PKINIT.
+	// DiffieHellmanBase is the Diffie Hellman base (G) that is accepted by PKINIT.
 	DiffieHellmanBase = big.NewInt(2)
 )
 

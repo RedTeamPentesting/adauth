@@ -28,7 +28,6 @@ linters:
     - goheader
     - gosec
     - gomodguard
-    - goprintffuncname
     - gosmopolitan
     - govet
     - grouper

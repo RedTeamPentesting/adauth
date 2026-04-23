@@ -254,7 +254,7 @@ func (client *gssapiClient) InitSecContextWithOptions(
 		}
 
 		if token.IsKRBError() {
-			return nil, !false, token.KRBError
+			return nil, true, token.KRBError
 		}
 
 		return make([]byte, 0), !completed, nil

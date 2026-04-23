@@ -43,7 +43,7 @@ type Credential struct {
 	// PasswordIsEmptyString is true when an empty Password field should not be
 	// interpreted as a missing password but as a password that happens to be
 	// empty.
-	PasswordIsEmtpyString bool
+	PasswordIsEmptyString bool
 	// CCacheIsFromEnv indicates whether the CCache was set explicitly or
 	// implicitly through an environment variable.
 	CCacheIsFromEnv bool
@@ -83,7 +83,7 @@ func CredentialFromPFXBytes(
 
 	rsaKey, ok := key.(*rsa.PrivateKey)
 	if !ok {
-		return nil, fmt.Errorf("PFX key is not an RSA private key but %T", rsaKey)
+		return nil, fmt.Errorf("PFX key is not an RSA private key but %T", key)
 	}
 
 	cred.ClientCert = cert

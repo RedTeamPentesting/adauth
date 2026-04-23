@@ -279,7 +279,7 @@ func (opts *Options) preliminaryCredential() (*Credential, error) {
 		AESKey:                aesKey,
 		CCache:                ccache,
 		dc:                    opts.DomainController,
-		PasswordIsEmtpyString: opts.Password == "" && (opts.flagset != nil && opts.flagset.Changed("password")),
+		PasswordIsEmptyString: opts.Password == "" && (opts.flagset != nil && opts.flagset.Changed("password")),
 		CCacheIsFromEnv:       opts.CCache != "" && (opts.flagset != nil && !opts.flagset.Changed("ccache")),
 		Resolver:              opts.Resolver,
 	}
