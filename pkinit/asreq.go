@@ -53,7 +53,7 @@ func ConfigureASReq(
 		PKAuthenticator: PKAuthenticator{
 			CUSec:    int(now.UnixMicro() - now.Truncate(time.Millisecond).UnixMicro()),
 			CTime:    now,
-			Nonce:    mathRand.Intn(4294967295), //nolint:gosec
+			Nonce:    int64(mathRand.Uint32()), //nolint:gosec
 			Checksum: pkAuthenticatorChecksum,
 		},
 		ClientPublicValue: SubjectPublicKeyInfo{

@@ -97,7 +97,7 @@ type PKAuthenticator struct {
 	// asn1
 	CUSec    int       `asn1:"tag:0,explicit"`
 	CTime    time.Time `asn1:"tag:1,explicit,generalized"`
-	Nonce    int       `asn1:"tag:2,explicit"`
+	Nonce    int64     `asn1:"tag:2,explicit"`
 	Checksum []byte    `asn1:"tag:3,explicit,optional"`
 }
 
