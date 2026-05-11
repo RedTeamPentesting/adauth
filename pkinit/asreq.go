@@ -51,9 +51,9 @@ func ConfigureASReq(
 
 	authPack := AuthPack{
 		PKAuthenticator: PKAuthenticator{
-			CUSec:    int(now.UnixMicro() - now.Truncate(time.Millisecond).UnixMicro()),
+			CUSec:    uint32(now.UnixMicro() - now.Truncate(time.Millisecond).UnixMicro()),
 			CTime:    now,
-			Nonce:    mathRand.Intn(4294967295), //nolint:gosec
+			Nonce:    mathRand.Uint32(), //nolint:gosec
 			Checksum: pkAuthenticatorChecksum,
 		},
 		ClientPublicValue: SubjectPublicKeyInfo{
