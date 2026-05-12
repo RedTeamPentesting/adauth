@@ -23,7 +23,7 @@ var (
 )
 
 type SignerInfo struct {
-	Version                   uint64 `asn1:"default:1"`
+	Version                   int `asn1:"default:1"`
 	IssuerAndSerialNumber     IssuerAndSerial
 	DigestAlgorithm           pkix.AlgorithmIdentifier
 	AuthenticatedAttributes   []Attribute `asn1:"optional,omitempty,tag:0"`
@@ -48,7 +48,7 @@ type ContentInfo struct {
 }
 
 type SignedData struct {
-	Version                    uint64                     `asn1:"default:1"`
+	Version                    int                        `asn1:"default:1"`
 	DigestAlgorithmIdentifiers []pkix.AlgorithmIdentifier `asn1:"set"`
 	ContentInfo                ContentInfo
 	Certificates               RawCertificates       `asn1:"optional,tag:0"`
@@ -95,9 +95,9 @@ type PKAuthenticator struct {
 	// 	paChecksum              [3] OCTET STRING OPTIONAL,
 	// 	...
 	// asn1
-	CUSec    uint32    `asn1:"tag:0,explicit"`
+	CUSec    int       `asn1:"tag:0,explicit"`
 	CTime    time.Time `asn1:"tag:1,explicit,generalized"`
-	Nonce    uint32    `asn1:"tag:2,explicit"`
+	Nonce    int       `asn1:"tag:2,explicit"`
 	Checksum []byte    `asn1:"tag:3,explicit,optional"`
 }
 
