@@ -32,7 +32,9 @@ func (n *ntlmNegotiator) ChallengeResponse(challenge []byte, username string, ha
 	if n.cert == nil && n.overrideTargetName == "" {
 		// no cert means no channel binding, so Azure/ntlmssp can handle
 		// authentication alone.
-		return ntlmssp.ProcessChallengeWithHash(challenge, username, hash)
+		return ntlmssp.NewAuthenticateMessage(challenge, username, hash, &ntlmssp.AuthenticateMessageOptions{
+			PasswordHashed: true,
+		})
 	}
 
 	// The authenticate message needs to include a channel binding hash, but the
@@ -72,6 +74,9 @@ func (n *ntlmNegotiator) ChallengeResponse(challenge []byte, username string, ha
 		if err != nil {
 			return nil, fmt.Errorf("override target name: create string payload: %w", err)
 		}
+
+		// ntlmssp.NewAuthenticateMessage splits this back into user and domain
+		username = n.overrideTargetName + `\` + username
 	}
 
 	// make sure that the server cannot make cm.Bytes() panic by omitting the
@@ -80,5 +85,7 @@ func (n *ntlmNegotiator) ChallengeResponse(challenge []byte, username string, ha
 		cm.Version = &ntlm.VersionStruct{}
 	}
 
-	return ntlmssp.ProcessChallengeWithHash(cm.Bytes(), username, hash)
+	return ntlmssp.NewAuthenticateMessage(cm.Bytes(), username, hash, &ntlmssp.AuthenticateMessageOptions{
+		PasswordHashed: true,
+	})
 }
