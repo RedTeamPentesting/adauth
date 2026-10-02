@@ -121,6 +121,7 @@ func TestTargetAddressWithAndWithoutPort(t *testing.T) {
 	})
 }
 
+//nolint:goconst
 func TestNewTargetSPN(t *testing.T) {
 	hostname := "computer.tld"
 

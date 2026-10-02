@@ -309,6 +309,7 @@ func certMatchesKey(key any, cert *x509.Certificate) bool {
 			return false
 		}
 
+		//nolint:staticcheck
 		if pub.X.Cmp(priv.X) != 0 || pub.Y.Cmp(priv.Y) != 0 {
 			return false
 		}

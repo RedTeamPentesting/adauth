@@ -188,10 +188,10 @@ func roundtripForSingleKDC(
 }
 
 func sendRecv(conn net.Conn, request []byte) ([]byte, error) {
-	requestLengthBytes := make([]byte, 4)
+	requestLengthBytes := make([]byte, 4, 4+len(request))
 	binary.BigEndian.PutUint32(requestLengthBytes, uint32(len(request)))
 
-	request = append(requestLengthBytes, request...) //nolint:makezero
+	request = append(requestLengthBytes, request...)
 
 	_, err := conn.Write(request)
 	if err != nil {

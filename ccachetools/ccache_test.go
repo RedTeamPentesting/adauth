@@ -14,6 +14,7 @@ import (
 	"github.com/jcmturner/gokrb5/v8/types"
 )
 
+//nolint:goconst
 var (
 	testASRep = messages.ASRep{
 		KDCRepFields: messages.KDCRepFields{

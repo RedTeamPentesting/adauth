@@ -48,7 +48,7 @@ func run() error {
 			return fmt.Errorf("marshal CCache: %w", err)
 		}
 
-		err = os.WriteFile(ccacheName, ccacheBytes, 0o600)
+		err = os.WriteFile(ccacheName, ccacheBytes, 0o600) //nolint:gosec
 		if err != nil {
 			return fmt.Errorf("write CCache: %w", err)
 		}

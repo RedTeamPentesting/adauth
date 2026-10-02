@@ -71,7 +71,7 @@ func TestLookupDC(t *testing.T) {
 func TestUPN(t *testing.T) {
 	t.Run("user and domain", func(t *testing.T) {
 		expcetedUPN := "foo@bar"
-		upn := (&adauth.Credential{Username: "foo", Domain: "bar"}).UPN()
+		upn := (&adauth.Credential{Username: "foo", Domain: "bar"}).UPN() //nolint:goconst
 
 		if upn != expcetedUPN {
 			t.Errorf("UPN is %q insteaf of %q", upn, expcetedUPN)

@@ -27,7 +27,7 @@ linters:
     - godox
     - goheader
     - gosec
-    - gomodguard
+    - gomodguard_v2
     - gosmopolitan
     - govet
     - grouper
